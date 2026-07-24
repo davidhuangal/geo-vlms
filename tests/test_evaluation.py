@@ -45,7 +45,7 @@ def test_build_runs_text_only_correctness():
     # Build runs
     runs = build_runs(examples=MOCK_EXAMPLES, seed=0)
     # Find the TEXT_ONLY runs
-    text_only = [run for run in runs if run.condition == Condition.TEXT_ONLY][0]
+    text_only = next(run for run in runs if run.condition == Condition.TEXT_ONLY)
     # Ensure image paths aren't present
     assert text_only.image_paths is None
 
