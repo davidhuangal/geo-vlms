@@ -1,6 +1,6 @@
 import argparse
 
-from rsvlm_reliability.vlm import build_model_and_processor, prompt_model
+from geo_vlms.vlm import build_model_and_processor, prompt_model
 
 
 def parse_args():

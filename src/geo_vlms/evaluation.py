@@ -1,13 +1,13 @@
 """Multi-condition evaluation runner.
 
-Orchestrates a VLM over the runs produced by :mod:`rsvlm_reliability.controls`,
+Orchestrates a VLM over the runs produced by :mod:`geo_vlms.controls`,
 writing one raw record per run to a JSONL file before any metrics are computed.
 """
 
 import json
 
-from rsvlm_reliability.controls import build_runs
-from rsvlm_reliability.vlm import build_model_and_processor, prompt_model
+from geo_vlms.controls import build_runs
+from geo_vlms.vlm import build_model_and_processor, prompt_model
 
 
 def build_record(run, output, model_name, seed):

@@ -1,4 +1,4 @@
-from rsvlm_reliability.analysis import normalize_text
+from geo_vlms.analysis import normalize_text
 
 
 def test_normalize_text():
