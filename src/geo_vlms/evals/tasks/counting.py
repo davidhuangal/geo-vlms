@@ -5,7 +5,7 @@ from .base import Task
 
 class CountingTask(Task[int | None]):
     def format_prompt(self, question: str) -> str:
-        return f"{question}. Respond with one integer only."
+        return f"{question} Respond with one integer only."
 
     def parse_response(self, response: str) -> int | None:
         # \d+ matches one or more consecutive digits
