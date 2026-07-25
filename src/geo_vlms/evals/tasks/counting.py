@@ -3,8 +3,8 @@ import re
 from .base import Task
 
 
-class CountingTask(Task):
-    def format_prompt(self, question):
+class CountingTask(Task[int | None]):
+    def format_prompt(self, question: str) -> str:
         return f"{question}. Respond with one integer only."
 
     def parse_response(self, response: str) -> int | None:

@@ -2,12 +2,18 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class Task(ABC):
-    @abstractmethod
-    def parse_response(self, response: str) -> str: ...
+class Task[PredT](ABC):
+    """A single evaluation task, generic over the type it parses responses into.
+
+    ``PredT`` pins ``parse_response``'s output to ``score``'s input, so the
+    runner can always feed one into the other.
+    """
 
     @abstractmethod
-    def score(self, prediction: Any, expected: Any) -> dict[str, float]: ...
+    def parse_response(self, response: str) -> PredT: ...
+
+    @abstractmethod
+    def score(self, prediction: PredT, expected: Any) -> dict[str, float]: ...
 
     @abstractmethod
     def format_prompt(self, question: str) -> str: ...
