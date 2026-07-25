@@ -1,8 +1,8 @@
 import json
 
-from geo_vlms import evaluation
 from geo_vlms.controls import Condition, Example, Run, build_runs
-from geo_vlms.evaluation import MultiConditionRunner, build_record
+from geo_vlms.evals import evaluation
+from geo_vlms.evals.evaluation import MultiConditionRunner, build_record
 
 MOCK_EXAMPLES = [
     Example(id="a", image_path="/a.jpg", prompt="q"),

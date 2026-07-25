@@ -1,10 +1,5 @@
-"""Multi-condition evaluation runner.
-
-Orchestrates a VLM over the runs produced by :mod:`geo_vlms.controls`,
-writing one raw record per run to a JSONL file before any metrics are computed.
-"""
-
 import json
+import os
 
 from geo_vlms.controls import build_runs
 from geo_vlms.vlm import build_model_and_processor, prompt_model
@@ -40,7 +35,7 @@ class MultiConditionRunner:
                 model_name=self.model_name, device=self.device
             )
 
-    def evaluate(self, out_path: str, seed: int = 0):
+    def evaluate(self, out_path: str | os.PathLike, seed: int = 0):
         # Init model if needed
         self._maybe_init_model()
 
