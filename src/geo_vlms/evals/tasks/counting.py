@@ -23,7 +23,7 @@ class CountingTask(Task):
             return {
                 "valid": 0.0,
                 "exact_match": 0.0,
-                "absolute_error": float("nan"),
+                "absolute_error": float("nan"),  # 'nan' to not affect calculated mean
                 "within_1": 0.0,
             }
 
