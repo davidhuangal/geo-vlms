@@ -1,8 +1,8 @@
 import json
 
 from geo_vlms.controls import Condition, Example, Run, build_runs
-from geo_vlms.evals import evaluation
-from geo_vlms.evals.evaluation import MultiConditionRunner, build_record
+from geo_vlms.evals import inference
+from geo_vlms.evals.inference import MultiConditionRunner, build_record
 
 MOCK_EXAMPLES = [
     Example(id="a", image_path="/a.jpg", prompt="q"),
@@ -82,12 +82,12 @@ def test_record_is_json_serializable():
 def test_evaluate_writes_one_record_per_run(monkeypatch, tmp_path):
     # Monkey patching to avoid expensive model load
     monkeypatch.setattr(
-        target=evaluation,
+        target=inference,
         name="build_model_and_processor",
         value=lambda model_name, device: (object(), object()),
     )
     monkeypatch.setattr(
-        target=evaluation,
+        target=inference,
         name="prompt_model",
         value=lambda prompt, image_paths, model, processor: "canned response",
     )
