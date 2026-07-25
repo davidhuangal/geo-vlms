@@ -1,9 +1,3 @@
-"""Multi-condition evaluation runner.
-
-Orchestrates a VLM over the runs produced by :mod:`geo_vlms.controls`,
-writing one raw record per run to a JSONL file before any metrics are computed.
-"""
-
 import json
 import os
 
