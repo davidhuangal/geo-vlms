@@ -20,7 +20,12 @@ class CountingTask(Task):
 
     def score(self, prediction: int | None, expected: int) -> dict[str, float]:
         if prediction is None:
-            return {"valid": 0.0, "exact_match": 0.0, "absolute_error": float("nan")}
+            return {
+                "valid": 0.0,
+                "exact_match": 0.0,
+                "absolute_error": float("nan"),
+                "within_1": 0.0,
+            }
 
         error = abs(prediction - expected)
         return {
