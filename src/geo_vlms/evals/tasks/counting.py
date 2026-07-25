@@ -9,7 +9,7 @@ class CountingTask(Task[int | None]):
 
     def parse_response(self, response: str) -> int | None:
         # \d+ matches one or more consecutive digits
-        match = re.search(r"\d+", response)
+        match = re.search(r"\d+", response.replace(",", ""))
 
         # Either return the match or None
         if match:
