@@ -31,7 +31,7 @@ def test_record_is_json_serializable():
     assert json.loads(dumped_s)["condition"] == "REAL"
 
 
-def test_evaluate_writes_one_record_per_run(monkeypatch, tmp_path):
+def test_inference_writes_one_record_per_run(monkeypatch, tmp_path):
     # Monkey patching to avoid expensive model load
     monkeypatch.setattr(
         target=inference,
@@ -47,13 +47,13 @@ def test_evaluate_writes_one_record_per_run(monkeypatch, tmp_path):
     # Denote the output path
     out_path = tmp_path / "runs.jsonl"
 
-    # Init the evaluation runner
+    # Init the inference runner
     runner = MultiConditionRunner(
         model_name="fake-model", examples=MOCK_EXAMPLES, device="cpu"
     )
 
-    # Run evaluation and read the output
-    records = runner.evaluate(out_path=out_path, seed=0)
+    # Run inference and read the output
+    records = runner.infer(out_path=out_path, seed=0)
     lines = out_path.read_text().splitlines()
 
     # Should write 3 lines per example
