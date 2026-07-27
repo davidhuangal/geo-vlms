@@ -1,7 +1,7 @@
 import json
 
-from geo_vlms.controls import Condition, Example, Run
 from geo_vlms.evals import inference
+from geo_vlms.evals.controls import Condition, Example, Run
 from geo_vlms.evals.inference import MultiConditionRunner, build_record
 
 MOCK_EXAMPLES = [
