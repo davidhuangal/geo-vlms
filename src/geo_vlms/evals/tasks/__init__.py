@@ -1,3 +1,3 @@
-from .counting import CountingTask
+from .counting import CountingTask, Task
 
-__all__ = ["CountingTask"]
+__all__ = ["CountingTask", "Task"]
