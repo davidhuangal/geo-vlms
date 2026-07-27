@@ -2,7 +2,7 @@ import json
 
 from geo_vlms.evals import inference
 from geo_vlms.evals.controls import Condition, Example, Run
-from geo_vlms.evals.inference import MultiConditionRunner, build_record
+from geo_vlms.evals.inference import InferenceRunner, build_record
 
 MOCK_EXAMPLES = [
     Example(id="a", image_path="/a.jpg", prompt="q"),
@@ -48,7 +48,7 @@ def test_inference_writes_one_record_per_run(monkeypatch, tmp_path):
     out_path = tmp_path / "runs.jsonl"
 
     # Init the inference runner
-    runner = MultiConditionRunner(
+    runner = InferenceRunner(
         model_name="fake-model", examples=MOCK_EXAMPLES, device="cpu"
     )
 
