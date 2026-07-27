@@ -1,7 +1,7 @@
 import json
 
 from geo_vlms.evals import inference
-from geo_vlms.evals.controls import Condition, Example, Run
+from geo_vlms.evals.controls import Condition, Example, Run, build_runs
 from geo_vlms.evals.inference import InferenceRunner, build_record
 
 MOCK_EXAMPLES = [
@@ -23,7 +23,7 @@ def test_record_is_json_serializable():
 
     # Generate a record and make sure it is serializable
     record = build_record(
-        run=run, output="some model response", model_name="my_model", seed=0
+        run=run, output="some model response", model_name="my_model"
     )
     dumped_s = json.dumps(record)
 
@@ -49,11 +49,12 @@ def test_inference_writes_one_record_per_run(monkeypatch, tmp_path):
 
     # Init the inference runner
     runner = InferenceRunner(
-        model_name="fake-model", examples=MOCK_EXAMPLES, device="cpu"
+        model_name="fake-model", device="cpu"
     )
 
     # Run inference and read the output
-    records = runner.infer(out_path=out_path, seed=0)
+    runs = build_runs(examples=MOCK_EXAMPLES, seed=0)
+    records = runner.infer(out_path=out_path, runs=runs)
     lines = out_path.read_text().splitlines()
 
     # Should write 3 lines per example
@@ -64,4 +65,4 @@ def test_inference_writes_one_record_per_run(monkeypatch, tmp_path):
     assert first["output"] == "canned response"
 
     # These keys should be in one output line
-    assert {"example_id", "condition", "seed"} <= set(first)
+    assert {"example_id", "condition", "prompt", "image_paths", "expected"} <= set(first)

@@ -19,7 +19,7 @@ def build_record(run, output, model_name):
 
 
 class InferenceRunner:
-    def __init__(self, model_name: str, list, device: str):
+    def __init__(self, model_name: str, device: str):
         # Denote the user settings
         self.model_name = model_name
         self.device = device
