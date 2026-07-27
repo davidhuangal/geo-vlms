@@ -1,11 +1,11 @@
 import json
 import os
 
-from geo_vlms.evals.controls import build_runs
+from geo_vlms.evals.controls import Run
 from geo_vlms.models.vlm import build_model_and_processor, prompt_model
 
 
-def build_record(run, output, model_name, seed):
+def build_record(run, output, model_name):
     record = {
         "example_id": run.example_id,
         "condition": run.condition.name,
@@ -14,7 +14,6 @@ def build_record(run, output, model_name, seed):
         "expected": run.expected,
         "output": output,
         "model_name": model_name,
-        "seed": seed,
     }
     return record
 
@@ -35,12 +34,19 @@ class MultiConditionRunner:
                 model_name=self.model_name, device=self.device
             )
 
-    def infer(self, out_path: str | os.PathLike, seed: int = 0):
+    def infer(self, runs: list[Run], out_path: str | os.PathLike) -> list[dict]:
+        """
+        Run inference with the VLM and produce outputs.
+
+        Args:
+            runs: List of Run objects each representing an inference job.
+            out_path: Desired output path for each run's outcome.
+
+        Returns:
+            The list of records which correspond to the runs.
+        """
         # Init model if needed
         self._maybe_init_model()
-
-        # Generate the runs per example
-        runs = build_runs(examples=self.examples, seed=seed)
 
         # Run evaluation
         records = []
@@ -51,7 +57,7 @@ class MultiConditionRunner:
                     run.prompt, run.image_paths, self.model, self.processor
                 )
                 record = build_record(
-                    run=run, output=output, model_name=self.model_name, seed=seed
+                    run=run, output=output, model_name=self.model_name
                 )
                 f.write(json.dumps(record) + "\n")
                 f.flush()
