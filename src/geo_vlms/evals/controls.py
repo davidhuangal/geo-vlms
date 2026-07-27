@@ -23,7 +23,7 @@ class Example:
     id: str  # Stable label
     image_path: str  # Path to the input image
     prompt: str  # The text prompt
-    expected: Any | None = None  # Ground truth for scoring
+    expected: Any = None  # Ground truth for scoring
 
 
 @dataclass
@@ -32,7 +32,7 @@ class Run:
     condition: Condition
     prompt: str
     image_paths: list[str] | None
-    expected: Any | None
+    expected: Any = None
 
 
 def build_runs(examples: list[Example], seed: int) -> list[Run]:
