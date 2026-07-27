@@ -19,10 +19,9 @@ def build_record(run, output, model_name):
 
 
 class MultiConditionRunner:
-    def __init__(self, model_name: str, examples: list, device: str):
+    def __init__(self, model_name: str, list, device: str):
         # Denote the user settings
         self.model_name = model_name
-        self.examples = examples
         self.device = device
 
         # Leave these uninitialized for now to save on memory
