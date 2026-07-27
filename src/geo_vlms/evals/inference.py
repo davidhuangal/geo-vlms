@@ -2,7 +2,7 @@ import json
 import os
 
 from geo_vlms.evals.controls import build_runs
-from geo_vlms.vlm import build_model_and_processor, prompt_model
+from geo_vlms.models.vlm import build_model_and_processor, prompt_model
 
 
 def build_record(run, output, model_name, seed):
