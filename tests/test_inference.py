@@ -53,8 +53,8 @@ def test_inference_writes_one_record_per_run(monkeypatch, tmp_path):
     records = runner.infer(out_path=out_path, runs=runs)
     lines = out_path.read_text().splitlines()
 
-    # Should write 3 lines per example
-    assert len(lines) == len(records) == len(MOCK_EXAMPLES) * 3
+    # Making sure one-line-per-run is true
+    assert len(lines) == len(records) == len(runs)
 
     first = json.loads(lines[0])
     # Make sure the response was threaded through
