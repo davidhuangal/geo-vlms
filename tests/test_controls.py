@@ -1,4 +1,4 @@
-from geo_vlms.controls import Condition, Example, build_runs
+from geo_vlms.evals.controls import Condition, Example, build_runs
 
 MOCK_EXAMPLES = [
     Example(id="a", image_path="/a.jpg", prompt="q"),
