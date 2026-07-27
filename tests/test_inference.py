@@ -22,9 +22,7 @@ def test_record_is_json_serializable():
     )
 
     # Generate a record and make sure it is serializable
-    record = build_record(
-        run=run, output="some model response", model_name="my_model"
-    )
+    record = build_record(run=run, output="some model response", model_name="my_model")
     dumped_s = json.dumps(record)
 
     # Make sure the Condition Enum renders correctly
@@ -48,9 +46,7 @@ def test_inference_writes_one_record_per_run(monkeypatch, tmp_path):
     out_path = tmp_path / "runs.jsonl"
 
     # Init the inference runner
-    runner = InferenceRunner(
-        model_name="fake-model", device="cpu"
-    )
+    runner = InferenceRunner(model_name="fake-model", device="cpu")
 
     # Run inference and read the output
     runs = build_runs(examples=MOCK_EXAMPLES, seed=0)
@@ -65,4 +61,6 @@ def test_inference_writes_one_record_per_run(monkeypatch, tmp_path):
     assert first["output"] == "canned response"
 
     # These keys should be in one output line
-    assert {"example_id", "condition", "prompt", "image_paths", "expected"} <= set(first)
+    assert {"example_id", "condition", "prompt", "image_paths", "expected"} <= set(
+        first
+    )
