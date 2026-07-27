@@ -1,7 +1,7 @@
 import json
 import os
 
-from geo_vlms.controls import build_runs
+from geo_vlms.evals.controls import build_runs
 from geo_vlms.vlm import build_model_and_processor, prompt_model
 
 
