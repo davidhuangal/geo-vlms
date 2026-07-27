@@ -1,7 +1,7 @@
 import json
 import os
 
-from geo_vlms.controls import build_runs
+from geo_vlms.evals.controls import build_runs
 from geo_vlms.vlm import build_model_and_processor, prompt_model
 
 
@@ -35,7 +35,7 @@ class MultiConditionRunner:
                 model_name=self.model_name, device=self.device
             )
 
-    def evaluate(self, out_path: str | os.PathLike, seed: int = 0):
+    def infer(self, out_path: str | os.PathLike, seed: int = 0):
         # Init model if needed
         self._maybe_init_model()
 
