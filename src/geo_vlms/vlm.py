@@ -68,12 +68,16 @@ def prompt_model(prompt: str, image_paths: list[str] | None, model, processor) -
 
     # Convert the messages into the tensors the VLM expects, on the model's
     # device. Only floating-point tensors are cast, so input_ids stays integral.
+    # return_tensors rides in processor_kwargs rather than as a named argument:
+    # SmolVLM's apply_chat_template override injects video defaults into plain
+    # **kwargs whenever this dict is empty, which trips a spurious per-call
+    # "Kwargs passed to processor.__call__" warning in transformers 5.x.
     inputs = processor.apply_chat_template(
         messages,
         add_generation_prompt=True,
         tokenize=True,
         return_dict=True,
-        return_tensors="pt",
+        processor_kwargs={"return_tensors": "pt"},
     ).to(model.device, dtype=torch.bfloat16)
 
     # Generate the raw tokens from the model
