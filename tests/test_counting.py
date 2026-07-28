@@ -1,6 +1,6 @@
 import pytest
 
-from geo_vlms.evals.tasks.counting import parse_response
+from geo_vlms.counting import parse_response
 
 
 def test_counting_parse_int():

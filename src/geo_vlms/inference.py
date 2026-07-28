@@ -3,7 +3,7 @@ import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from geo_vlms.models.vlm import prompt_model
+from geo_vlms.vlm import prompt_model
 
 
 @dataclass
