@@ -1,17 +1,9 @@
 import json
 import os
-from dataclasses import asdict, dataclass
-from typing import Any
+from dataclasses import asdict
 
+from geo_vlms.example import Example
 from geo_vlms.vlm import prompt_model
-
-
-@dataclass
-class Example:
-    id: str  # Stable label
-    image_path: str  # Path to the input image
-    prompt: str  # The text prompt
-    expected: Any = None  # Ground truth for scoring
 
 
 def run_inference(
@@ -37,9 +29,10 @@ def run_inference(
     records = []
     with open(out_path, "w") as f:
         for example in examples:
-            output = prompt_model(
-                example.prompt, [example.image_path], model, processor
-            )
+            # A None image_path means a text-only control: pass no images
+            # rather than a list containing None.
+            image_paths = None if example.image_path is None else [example.image_path]
+            output = prompt_model(example.prompt, image_paths, model, processor)
             record = asdict(example) | {"output": output, "model_name": model_name}
 
             # Flush per record so a mid-run crash still leaves the completed
