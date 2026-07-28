@@ -2,6 +2,8 @@ import json
 import os
 from dataclasses import asdict
 
+from tqdm import tqdm
+
 from geo_vlms.example import Example
 from geo_vlms.vlm import prompt_model
 
@@ -12,6 +14,7 @@ def run_inference(
     processor,
     out_path: str | os.PathLike,
     model_name: str,
+    progress: bool = True,
 ) -> list[dict]:
     """
     Run the VLM over a list of examples and write the raw outputs to disk.
@@ -28,7 +31,14 @@ def run_inference(
     """
     records = []
     with open(out_path, "w") as f:
-        for example in examples:
+        pbar = (
+            examples
+            if not progress
+            else tqdm(
+                examples, ncols=120, total=len(examples), desc="Running Inference."
+            )
+        )
+        for example in pbar:
             # A None image_path means a text-only control: pass no images
             # rather than a list containing None.
             image_paths = None if example.image_path is None else [example.image_path]
