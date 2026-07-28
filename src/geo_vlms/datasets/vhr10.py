@@ -1,4 +1,5 @@
 import os
+import random
 from pathlib import Path
 
 import pandas as pd
@@ -38,13 +39,21 @@ def build_counting_dataset(
     pos_dir: os.PathLike,
     gt_dir: os.PathLike,
     neg_dir: os.PathLike | None = None,
+    num_pos_images: int | None = None,
+    num_neg_images: int | None = None,
+    seed: int = 0,
 ) -> list[Example]:
     examples = []
+    pos_rng = random.Random(f"{seed}-pos")
+    neg_rng = random.Random(f"{seed}-neg")
 
     # ----- Handle positive samples -----
     # Sorted so the dataset order (and therefore example ids and results
     # files) is stable across runs and filesystems.
     pos_image_paths = [Path(pos_dir) / img for img in sorted(os.listdir(pos_dir))]
+
+    if num_pos_images is not None:
+        pos_image_paths = sorted(pos_rng.sample(pos_image_paths, num_pos_images))
 
     for pos_image_path in pos_image_paths:
         # Find the corresponding GT file
@@ -82,6 +91,8 @@ def build_counting_dataset(
     # ----- Handle negative samples -----
     if neg_dir is not None:
         neg_image_paths = [Path(neg_dir) / img for img in sorted(os.listdir(neg_dir))]
+        if num_neg_images is not None:
+            neg_image_paths = sorted(neg_rng.sample(neg_image_paths, num_neg_images))
         for neg_image_path in neg_image_paths:
             # Create an expected=0 example per category
             for category_name in CLASS_MAP.values():
