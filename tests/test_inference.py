@@ -1,8 +1,7 @@
 import json
 
-from geo_vlms.evals import inference
-from geo_vlms.evals.controls import Condition, Example, Run, build_runs
-from geo_vlms.evals.inference import InferenceRunner, build_record
+from geo_vlms import inference
+from geo_vlms.inference import Example, run_inference
 
 MOCK_EXAMPLES = [
     Example(id="a", image_path="/a.jpg", prompt="q"),
@@ -11,31 +10,8 @@ MOCK_EXAMPLES = [
 ]
 
 
-def test_record_is_json_serializable():
-    # Create a sample Run
-    run = Run(
-        example_id="a",
-        condition=Condition.REAL,
-        prompt="q",
-        image_paths=["/a.jpg"],
-        expected=None,
-    )
-
-    # Generate a record and make sure it is serializable
-    record = build_record(run=run, output="some model response", model_name="my_model")
-    dumped_s = json.dumps(record)
-
-    # Make sure the Condition Enum renders correctly
-    assert json.loads(dumped_s)["condition"] == "REAL"
-
-
-def test_inference_writes_one_record_per_run(monkeypatch, tmp_path):
-    # Monkey patching to avoid expensive model load
-    monkeypatch.setattr(
-        target=inference,
-        name="build_model_and_processor",
-        value=lambda model_name, device: (object(), object()),
-    )
+def test_inference_writes_one_record_per_example(monkeypatch, tmp_path):
+    # Monkey patching to avoid an expensive model call
     monkeypatch.setattr(
         target=inference,
         name="prompt_model",
@@ -45,22 +21,22 @@ def test_inference_writes_one_record_per_run(monkeypatch, tmp_path):
     # Denote the output path
     out_path = tmp_path / "runs.jsonl"
 
-    # Init the inference runner
-    runner = InferenceRunner(model_name="fake-model", device="cpu")
-
     # Run inference and read the output
-    runs = build_runs(examples=MOCK_EXAMPLES, seed=0)
-    records = runner.infer(out_path=out_path, runs=runs)
+    records = run_inference(
+        examples=MOCK_EXAMPLES,
+        model=object(),
+        processor=object(),
+        out_path=out_path,
+        model_name="fake-model",
+    )
     lines = out_path.read_text().splitlines()
 
-    # Making sure one-line-per-run is true
-    assert len(lines) == len(records) == len(runs)
+    # Making sure one-line-per-example is true
+    assert len(lines) == len(records) == len(MOCK_EXAMPLES)
 
     first = json.loads(lines[0])
     # Make sure the response was threaded through
     assert first["output"] == "canned response"
 
     # These keys should be in one output line
-    assert {"example_id", "condition", "prompt", "image_paths", "expected"} <= set(
-        first
-    )
+    assert {"id", "image_path", "prompt", "expected", "model_name"} <= set(first)

@@ -50,26 +50,24 @@ def build_model_and_processor(model_name: str, device: str):
     return model, processor
 
 
-def preprocess_inputs(
-    prompt: str, model, processor, image_paths: list[str] | None = None
-):
+def prompt_model(prompt: str, image_paths: list[str] | None, model, processor) -> str:
     """
-    Preprocess user inputs such that they can be consumed by the VLM.
+    Prompt a VLM with text and images.
 
     Args:
         prompt: The user text prompt.
+        image_paths: The paths to the images to show to the VLM.
         model: The VLM model.
         processor: The processor associated with the model.
-        image_paths: The paths to the images to show to the VLM.
 
     Returns:
-        The inputs in the format consumable by the model, on the same
-        device as the model.
+        The generated text from the model.
     """
     # Convert prompt / images into the expected messages format
     messages = build_messages(prompt=prompt, image_paths=image_paths)
 
-    # Convert the messages into the format the VLM expects
+    # Convert the messages into the tensors the VLM expects, on the model's
+    # device. Only floating-point tensors are cast, so input_ids stays integral.
     inputs = processor.apply_chat_template(
         messages,
         add_generation_prompt=True,
@@ -77,27 +75,6 @@ def preprocess_inputs(
         return_dict=True,
         return_tensors="pt",
     ).to(model.device, dtype=torch.bfloat16)
-
-    return inputs
-
-
-def prompt_model(prompt, image_paths, model, processor):
-    """
-    Prompt a VLM with text and images.
-
-    Args:
-        prompt: The user text prompt.
-        model: The VLM model.
-        processor: The processor associated with the model.
-
-    Returns:
-        The generated text from the model.
-    """
-
-    # Prepare inputs to send to the model
-    inputs = preprocess_inputs(
-        prompt=prompt, model=model, processor=processor, image_paths=image_paths
-    )
 
     # Generate the raw tokens from the model
     generated_ids = model.generate(**inputs, do_sample=False, max_new_tokens=64)

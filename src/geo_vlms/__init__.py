@@ -1,7 +1,7 @@
-"""Remote-Sensing VLM Reliability Lab.
+"""Remote-Sensing VLM Lab.
 
-A reproducible harness for evaluating whether vision-language models actually
-use imagery when answering questions, under controlled reliability conditions.
+A small, reproducible harness for running vision-language models over
+(image, prompt, expected-answer) examples and saving the raw outputs.
 """
 
 __version__ = "0.1.0"
