@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import NamedTuple
 
@@ -53,23 +52,20 @@ def test_build_counting_dataset(vhr10_dirs):
         pos_dir=vhr10_dirs.pos, gt_dir=vhr10_dirs.gt, neg_dir=vhr10_dirs.neg
     )
 
-    # Each image should have one Example per category id
-    assert len(dataset) == (
-        len(os.listdir(vhr10_dirs.pos)) + len(os.listdir(vhr10_dirs.neg))
-    ) * len(CLASS_MAP)
+    # Positive images yield one Example per *annotated* category; negative
+    # images yield one expected=0 Example per category.
+    assert len(dataset) == 2 + len(CLASS_MAP)
 
     by_id = {e.id: e for e in dataset}
 
     # Test some cases for the positive image
     assert by_id["pos/001:airplane"].expected == 2
     assert by_id["pos/001:ship"].expected == 1
-    assert all(
-        e.expected == 0
-        for e in dataset
-        if e.id.startswith("pos/")
-        and not e.id.endswith(":airplane")
-        and not e.id.endswith(":ship")
-    )
+
+    # Unannotated categories must produce no Example at all: absence from a
+    # positive image's GT does not assert a zero count.
+    assert "pos/001:vehicle" not in by_id
+    assert all(e.expected >= 1 for e in dataset if e.id.startswith("pos/"))
 
     # Test the negative image
     assert all(e.expected == 0 for e in dataset if e.id.startswith("neg/"))
@@ -89,5 +85,15 @@ def test_real_vhr10_builds():
         DATA_DIR / "ground_truth",
         DATA_DIR / "negative_image_set",
     )
-    assert len(examples) == (650 + 150) * len(CLASS_MAP)
-    assert all(e.expected >= 0 for e in examples)
+    pos = [e for e in examples if e.id.startswith("pos/")]
+    neg = [e for e in examples if e.id.startswith("neg/")]
+
+    # Every negative image contributes one zero-count Example per category
+    assert len(neg) == 150 * len(CLASS_MAP)
+
+    # Golden count of annotated (image, category) pairs in the standard
+    # download. Therefore, a change means the annotations or the parser shifted.
+    assert len(pos) == 888
+
+    assert all(e.expected >= 1 for e in pos)
+    assert all(e.expected == 0 for e in neg)

@@ -60,8 +60,15 @@ def build_counting_dataset(
         for _, row in gt_df.iterrows():
             counts_per_category[row.category_id] += 1
 
-        # Create Examples based on the object counts
+        # Create Examples based on the object counts. Categories absent from
+        # a GT file are skipped rather than emitted as expected=0: positive
+        # images are only annotated for their target classes, so absence
+        # means "not labeled", not "not present" (e.g. parking lots full of
+        # unannotated vehicles). Trustworthy zeros come from the negative
+        # set, which is curated to contain none of the ten classes.
         for category_id, object_count in counts_per_category.items():
+            if object_count < 1:
+                continue
             category_name = CLASS_MAP[category_id]
             examples.append(
                 Example(
