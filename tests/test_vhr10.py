@@ -97,3 +97,76 @@ def test_real_vhr10_builds():
 
     assert all(e.expected >= 1 for e in pos)
     assert all(e.expected == 0 for e in neg)
+
+
+def make_vhr10_layout(root, num_pos, num_neg) -> Vhr10Dirs:
+    # every pos image gets a trivial one-airplane GT; content doesn't matter,
+    # sampling tests only care about *which* images are chosen
+    dirs = Vhr10Dirs(
+        pos=root / "positive_image_set",
+        gt=root / "ground_truth",
+        neg=root / "negative_image_set",
+    )
+    for d in dirs:
+        d.mkdir()
+
+    for i in range(1, num_pos + 1):
+        (dirs.pos / f"{i}.jpg").touch()
+        (dirs.gt / f"{i}.txt").write_text("(1,1),(2,2),1\n")
+    for i in range(1, num_neg + 1):
+        (dirs.neg / f"{i}_neg.jpg").touch()  # _neg to make neg's easier to identify
+
+    return dirs
+
+
+def test_subset_deterministic(tmp_path):
+    num_pos = 20
+    num_neg = 10
+
+    dirs = make_vhr10_layout(root=tmp_path, num_pos=num_pos, num_neg=num_neg)
+
+    a = build_counting_dataset(
+        pos_dir=dirs.pos,
+        gt_dir=dirs.gt,
+        neg_dir=dirs.neg,
+        num_pos_images=num_pos - 10,
+        num_neg_images=num_neg - 5,
+        seed=0,
+    )
+    b = build_counting_dataset(
+        pos_dir=dirs.pos,
+        gt_dir=dirs.gt,
+        neg_dir=dirs.neg,
+        num_pos_images=num_pos - 10,
+        num_neg_images=num_neg - 5,
+        seed=0,
+    )
+
+    assert [e.id for e in a] == [e.id for e in b]
+
+
+def test_pos_and_neg_subsets_independent(tmp_path):
+    num_pos = 20
+    num_neg = 10
+
+    dirs = make_vhr10_layout(root=tmp_path, num_pos=num_pos, num_neg=num_neg)
+    a = build_counting_dataset(
+        pos_dir=dirs.pos,
+        gt_dir=dirs.gt,
+        neg_dir=dirs.neg,
+        num_pos_images=num_pos - 10,
+        num_neg_images=num_neg - 5,
+        seed=0,
+    )
+    b = build_counting_dataset(
+        pos_dir=dirs.pos,
+        gt_dir=dirs.gt,
+        neg_dir=dirs.neg,
+        num_pos_images=num_pos - 15,
+        num_neg_images=num_neg - 5,
+        seed=0,
+    )
+
+    assert [e.id for e in a if e.id.startswith("neg")] == [
+        e.id for e in b if e.id.startswith("neg")
+    ]
