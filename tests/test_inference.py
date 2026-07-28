@@ -1,7 +1,7 @@
 import json
 
 from geo_vlms.evals import inference
-from geo_vlms.evals.inference import Example, InferenceRunner
+from geo_vlms.evals.inference import Example, run_inference
 
 MOCK_EXAMPLES = [
     Example(id="a", image_path="/a.jpg", prompt="q"),
@@ -11,12 +11,7 @@ MOCK_EXAMPLES = [
 
 
 def test_inference_writes_one_record_per_example(monkeypatch, tmp_path):
-    # Monkey patching to avoid expensive model load
-    monkeypatch.setattr(
-        target=inference,
-        name="build_model_and_processor",
-        value=lambda model_name, device: (object(), object()),
-    )
+    # Monkey patching to avoid an expensive model call
     monkeypatch.setattr(
         target=inference,
         name="prompt_model",
@@ -26,11 +21,14 @@ def test_inference_writes_one_record_per_example(monkeypatch, tmp_path):
     # Denote the output path
     out_path = tmp_path / "runs.jsonl"
 
-    # Init the inference runner
-    runner = InferenceRunner(model_name="fake-model", device="cpu")
-
     # Run inference and read the output
-    records = runner.infer(examples=MOCK_EXAMPLES, out_path=out_path)
+    records = run_inference(
+        examples=MOCK_EXAMPLES,
+        model=object(),
+        processor=object(),
+        out_path=out_path,
+        model_name="fake-model",
+    )
     lines = out_path.read_text().splitlines()
 
     # Making sure one-line-per-example is true

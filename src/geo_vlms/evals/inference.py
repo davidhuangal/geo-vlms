@@ -1,9 +1,9 @@
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
-from geo_vlms.models.vlm import build_model_and_processor, prompt_model
+from geo_vlms.models.vlm import prompt_model
 
 
 @dataclass
@@ -14,60 +14,39 @@ class Example:
     expected: Any = None  # Ground truth for scoring
 
 
-def build_record(example, output, model_name):
-    record = {
-        "id": example.id,
-        "image_path": example.image_path,
-        "prompt": example.prompt,
-        "expected": example.expected,
-        "output": output,
-        "model_name": model_name,
-    }
-    return record
+def run_inference(
+    examples: list[Example],
+    model,
+    processor,
+    out_path: str | os.PathLike,
+    model_name: str,
+) -> list[dict]:
+    """
+    Run the VLM over a list of examples and write the raw outputs to disk.
 
+    Args:
+        examples: The examples to run.
+        model: The VLM model.
+        processor: The processor associated with the model.
+        out_path: Path to the output `.jsonl`, one record per example.
+        model_name: The model's HuggingFace name, recorded for provenance.
 
-class InferenceRunner:
-    def __init__(self, model_name: str, device: str):
-        # Denote the user settings
-        self.model_name = model_name
-        self.device = device
-
-        # Leave these uninitialized for now to save on memory
-        self.model, self.processor = None, None
-
-    def _maybe_init_model(self):
-        if self.model is None or self.processor is None:
-            self.model, self.processor = build_model_and_processor(
-                model_name=self.model_name, device=self.device
+    Returns:
+        The records corresponding to the examples.
+    """
+    records = []
+    with open(out_path, "w") as f:
+        for example in examples:
+            output = prompt_model(
+                example.prompt, [example.image_path], model, processor
             )
+            record = asdict(example) | {"output": output, "model_name": model_name}
 
-    def infer(self, examples: list[Example], out_path: str | os.PathLike) -> list[dict]:
-        """
-        Run inference with the VLM and produce outputs.
+            # Flush per record so a mid-run crash still leaves the completed
+            # examples on disk.
+            f.write(json.dumps(record) + "\n")
+            f.flush()
 
-        Args:
-            examples: List of Example objects each representing an inference job.
-            out_path: Desired output path for each example's outcome.
+            records.append(record)
 
-        Returns:
-            The list of records which correspond to the examples.
-        """
-        # Init model if needed
-        self._maybe_init_model()
-
-        # Run inference
-        records = []
-        with open(out_path, "w") as f:
-            for example in examples:
-                # Run through the model and record the output
-                output = prompt_model(
-                    example.prompt, [example.image_path], self.model, self.processor
-                )
-                record = build_record(
-                    example=example, output=output, model_name=self.model_name
-                )
-                f.write(json.dumps(record) + "\n")
-                f.flush()
-                records.append(record)
-
-        return records
+    return records
