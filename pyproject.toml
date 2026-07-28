@@ -1,7 +1,7 @@
 [project]
 name = "geo-vlms"
 version = "0.1.0"
-description = "A reproducible harness for evaluating whether remote-sensing VLMs use imagery under controlled reliability conditions."
+description = "A reproducible harness for evaluating vision-language models on remote-sensing imagery."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
