@@ -6,7 +6,10 @@ import re
 def format_prompt(question: str) -> str:
     # The newline marks the instruction boundary without assuming the question
     # carries (or lacks) terminal punctuation.
-    return f"{question}\nRespond with one integer only."
+    return (
+        f"{question}\nRespond with one integer only and no other prose or "
+        "punctuation. Assume this will be passed to a Python int(response)."
+    )
 
 
 def parse_response(response: str) -> int | None:
