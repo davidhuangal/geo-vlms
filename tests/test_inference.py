@@ -1,7 +1,8 @@
 import json
 
 from geo_vlms import inference
-from geo_vlms.inference import Example, run_inference
+from geo_vlms.example import Example
+from geo_vlms.inference import run_inference
 
 MOCK_EXAMPLES = [
     Example(id="a", image_path="/a.jpg", prompt="q"),
