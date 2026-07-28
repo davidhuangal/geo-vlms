@@ -16,7 +16,9 @@ def test_inference_writes_one_record_per_example(monkeypatch, tmp_path):
     monkeypatch.setattr(
         target=inference,
         name="prompt_model",
-        value=lambda prompt, image_paths, model, processor: "canned response",
+        value=lambda prompt, image_paths, model, processor, max_new_tokens: (
+            "canned response"
+        ),
     )
 
     # Denote the output path
