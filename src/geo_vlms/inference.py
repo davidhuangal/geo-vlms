@@ -15,6 +15,7 @@ def run_inference(
     out_path: str | os.PathLike,
     model_name: str,
     progress: bool = True,
+    max_new_tokens: int = 64,
 ) -> list[dict]:
     """
     Run the VLM over a list of examples and write the raw outputs to disk.
@@ -42,7 +43,9 @@ def run_inference(
             # A None image_path means a text-only control: pass no images
             # rather than a list containing None.
             image_paths = None if example.image_path is None else [example.image_path]
-            output = prompt_model(example.prompt, image_paths, model, processor)
+            output = prompt_model(
+                example.prompt, image_paths, model, processor, max_new_tokens
+            )
             record = asdict(example) | {"output": output, "model_name": model_name}
 
             # Flush per record so a mid-run crash still leaves the completed

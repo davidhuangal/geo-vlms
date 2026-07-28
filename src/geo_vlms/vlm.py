@@ -50,7 +50,13 @@ def build_model_and_processor(model_name: str, device: str):
     return model, processor
 
 
-def prompt_model(prompt: str, image_paths: list[str] | None, model, processor) -> str:
+def prompt_model(
+    prompt: str,
+    image_paths: list[str] | None,
+    model,
+    processor,
+    max_new_tokens: int = 64,
+) -> str:
     """
     Prompt a VLM with text and images.
 
@@ -59,6 +65,7 @@ def prompt_model(prompt: str, image_paths: list[str] | None, model, processor) -
         image_paths: The paths to the images to show to the VLM.
         model: The VLM model.
         processor: The processor associated with the model.
+        max_new_tokens: Sets the max tokens a model is allowed to output.
 
     Returns:
         The generated text from the model.
@@ -81,7 +88,9 @@ def prompt_model(prompt: str, image_paths: list[str] | None, model, processor) -
     ).to(model.device, dtype=torch.bfloat16)
 
     # Generate the raw tokens from the model
-    generated_ids = model.generate(**inputs, do_sample=False, max_new_tokens=64)
+    generated_ids = model.generate(
+        **inputs, do_sample=False, max_new_tokens=max_new_tokens
+    )
 
     # Grab only the tokens which correspond to the model output
     prompt_len = inputs["input_ids"].shape[-1]
