@@ -88,8 +88,9 @@ def test_real_vhr10_builds():
     pos = [e for e in examples if e.id.startswith("pos/")]
     neg = [e for e in examples if e.id.startswith("neg/")]
 
-    # Every negative image contributes one zero-count Example per category
-    assert len(neg) == 150 * len(CLASS_MAP)
+    # Every negative image contributes one `expected=0` Example per category.
+    num_neg_images = len(list((DATA_DIR / "negative_image_set").glob("*.jpg")))
+    assert len(neg) == num_neg_images * len(CLASS_MAP)
 
     # Golden count of annotated (image, category) pairs in the standard
     # download. Therefore, a change means the annotations or the parser shifted.

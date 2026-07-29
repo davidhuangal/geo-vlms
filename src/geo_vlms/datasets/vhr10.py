@@ -49,8 +49,9 @@ def build_counting_dataset(
 
     # ----- Handle positive samples -----
     # Sorted so the dataset order (and therefore example ids and results
-    # files) is stable across runs and filesystems.
-    pos_image_paths = [Path(pos_dir) / img for img in sorted(os.listdir(pos_dir))]
+    # files) is stable across runs and filesystems. Filtered to .jpg so
+    # filesystem debris (e.g. .DS_Store) never becomes an Example.
+    pos_image_paths = sorted(Path(pos_dir).glob("*.jpg"))
 
     if num_pos_images is not None:
         pos_image_paths = sorted(pos_rng.sample(pos_image_paths, num_pos_images))
@@ -90,7 +91,7 @@ def build_counting_dataset(
 
     # ----- Handle negative samples -----
     if neg_dir is not None:
-        neg_image_paths = [Path(neg_dir) / img for img in sorted(os.listdir(neg_dir))]
+        neg_image_paths = sorted(Path(neg_dir).glob("*.jpg"))
         if num_neg_images is not None:
             neg_image_paths = sorted(neg_rng.sample(neg_image_paths, num_neg_images))
         for neg_image_path in neg_image_paths:
