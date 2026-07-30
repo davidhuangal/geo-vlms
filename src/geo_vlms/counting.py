@@ -37,7 +37,7 @@ def score(prediction: int | None, expected: int) -> dict[str, float]:
         }
 
     abs_error = abs(prediction - expected)
-    signed_error = expected - prediction
+    signed_error = prediction - expected
     return {
         "valid": 1.0,
         "exact_match": float(prediction == expected),
