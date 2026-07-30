@@ -32,13 +32,16 @@ def score(prediction: int | None, expected: int) -> dict[str, float]:
             "valid": 0.0,
             "exact_match": 0.0,
             "absolute_error": float("nan"),  # 'nan' to not affect calculated mean
+            "signed_error": float("nan"),
             "within_1": 0.0,
         }
 
-    error = abs(prediction - expected)
+    abs_error = abs(prediction - expected)
+    signed_error = prediction - expected
     return {
         "valid": 1.0,
         "exact_match": float(prediction == expected),
-        "absolute_error": float(error),
-        "within_1": float(error <= 1),
+        "absolute_error": float(abs_error),
+        "signed_error": float(signed_error),
+        "within_1": float(abs_error <= 1),
     }
