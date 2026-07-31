@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -10,3 +10,4 @@ class Example:
     image_path: str | None
     prompt: str  # The text prompt
     expected: Any = None  # Ground truth for scoring
+    metadata: dict[str, Any] = field(default_factory=dict)  # Any extra metadata
