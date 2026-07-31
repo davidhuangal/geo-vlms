@@ -86,6 +86,7 @@ def build_counting_dataset(
                     image_path=str(pos_image_path),
                     prompt=format_prompt(_counting_question(category_name)),
                     expected=object_count,
+                    metadata={"split": "positive", "category": category_name},
                 )
             )
 
@@ -103,6 +104,7 @@ def build_counting_dataset(
                         image_path=str(neg_image_path),
                         prompt=format_prompt(_counting_question(category_name)),
                         expected=0,
+                        metadata={"split": "negative", "category": category_name},
                     )
                 )
 

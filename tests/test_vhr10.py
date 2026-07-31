@@ -171,3 +171,20 @@ def test_pos_and_neg_subsets_independent(tmp_path):
     assert [e.id for e in a if e.id.startswith("neg")] == [
         e.id for e in b if e.id.startswith("neg")
     ]
+
+
+def test_counting_metadata(vhr10_dirs):
+    dataset = build_counting_dataset(
+        pos_dir=vhr10_dirs.pos, gt_dir=vhr10_dirs.gt, neg_dir=vhr10_dirs.neg
+    )
+    by_id = {e.id: e for e in dataset}
+
+    assert by_id["pos/001:airplane"].metadata == {
+        "split": "positive",
+        "category": "airplane",
+    }
+    assert by_id["pos/001:ship"].metadata == {"split": "positive", "category": "ship"}
+    assert by_id["neg/900:vehicle"].metadata == {
+        "split": "negative",
+        "category": "vehicle",
+    }
