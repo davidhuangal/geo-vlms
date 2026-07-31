@@ -85,6 +85,9 @@ def prompt_model(
         tokenize=True,
         return_dict=True,
         processor_kwargs={"return_tensors": "pt"},
+        # Disables Qwen3.5-style thinking mode; templates without the variable
+        # ignore it. Must be a bare kwarg - template_kwargs is silently dropped.
+        enable_thinking=False,
     ).to(model.device, dtype=torch.bfloat16)
 
     # Generate the raw tokens from the model
