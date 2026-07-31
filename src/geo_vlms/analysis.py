@@ -34,7 +34,13 @@ def score_records(
 
 
 def summarize(
-    metrics_df: pd.DataFrame, group_by: list[str], metric_cols: list[str]
+    metrics_df: pd.DataFrame, group_by: list[str] | None, metric_cols: list[str]
 ) -> pd.DataFrame:
-    """Summarize results from a metrics DataFrame."""
+    """Summarize results from a metrics DataFrame.
+
+    When `group_by` is None, summarizes over the whole DataFrame as a
+    one-row result labeled "mean".
+    """
+    if group_by is None:
+        return metrics_df[metric_cols].mean().to_frame("mean").T
     return metrics_df.groupby(group_by)[metric_cols].mean()
