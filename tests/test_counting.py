@@ -30,7 +30,7 @@ def test_counting_parse_in_text(task):
     assert task.parse_response("There are 12 planes.") == 12
 
 
-@pytest.mark.xfail(reason="word-number parsing not yet implemented")
+@pytest.mark.xfail(reason="word-number parsing not yet implemented", strict=True)
 def test_counting_parse_numeric_word(task):
     assert task.parse_response("fifteen") == 15
 
