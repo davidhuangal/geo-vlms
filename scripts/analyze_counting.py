@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from geo_vlms import counting
 from geo_vlms.analysis import load_records, score_records, summarize
+from geo_vlms.tasks import Counting
 
 
 def parse_args() -> argparse.Namespace:
@@ -42,6 +42,7 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
+    task = Counting()
 
     records_path = Path(args.records)
     if not records_path.exists():
@@ -54,7 +55,7 @@ def main():
     )
 
     metrics_df = score_records(
-        records_df=records_df, parse=counting.parse_response, score=counting.score
+        records_df=records_df, parse=task.parse_response, score=task.score
     )
 
     metric_cols = (
