@@ -3,9 +3,14 @@ from pathlib import Path
 
 import torch
 
-from geo_vlms.datasets.vhr10 import build_counting_dataset
+from geo_vlms.datasets.vhr10 import build_counting_dataset, build_existence_dataset
 from geo_vlms.inference import run_inference
 from geo_vlms.vlm import build_model_and_processor
+
+DATASET_BUILDERS = {
+    "counting": build_counting_dataset,
+    "existence": build_existence_dataset,
+}
 
 
 def default_device() -> str:
@@ -17,9 +22,17 @@ def default_device() -> str:
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse CLI for a counting inference run."""
+    """Parse CLI for a VHR10 inference run."""
     parser = argparse.ArgumentParser(
-        description="Run a VLM over the VHR10 counting dataset and write records.",
+        description="Run a VLM over a VHR10 task dataset and write records.",
+    )
+    parser.add_argument(
+        "-t",
+        "--task",
+        type=str,
+        required=True,
+        choices=DATASET_BUILDERS,
+        help="Target task.",
     )
     parser.add_argument(
         "-m",
@@ -77,12 +90,13 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
+    build_dataset = DATASET_BUILDERS[args.task]
 
     data_dir = Path(args.data_dir)
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    examples = build_counting_dataset(
+    examples = build_dataset(
         pos_dir=data_dir / "positive_image_set",
         gt_dir=data_dir / "ground_truth",
         neg_dir=None if args.no_neg else data_dir / "negative_image_set",
@@ -90,7 +104,10 @@ def main():
         num_neg_images=args.num_neg,
         seed=args.seed,
     )
-    print(f"Built {len(examples)} examples. Loading {args.model} on {args.device}.")
+    print(
+        f"Built {len(examples)} {args.task} examples. "
+        f"Loading {args.model} on {args.device}."
+    )
 
     model, processor = build_model_and_processor(args.model, args.device)
 
