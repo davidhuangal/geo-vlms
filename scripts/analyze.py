@@ -4,20 +4,30 @@ from pathlib import Path
 import pandas as pd
 
 from geo_vlms.analysis import load_records, score_records, summarize
-from geo_vlms.tasks import Counting
+from geo_vlms.tasks import Counting, Existence
+
+TASKS = {"counting": Counting, "existence": Existence}
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse CLI for counting analysis."""
+    """Parse CLI for analysis."""
     parser = argparse.ArgumentParser(
-        description="Analyze records from a VLM counting inference job.",
+        description="Analyze records from a VLM inference job.",
+    )
+    parser.add_argument(
+        "-t",
+        "--task",
+        type=str,
+        required=True,
+        choices=TASKS,
+        help="Target task.",
     )
     parser.add_argument(
         "-r",
         "--records",
         type=str,
         required=True,
-        help="Path to counting records JSONL file.",
+        help="Path to records JSONL file.",
     )
     parser.add_argument(
         "-g",
@@ -42,7 +52,7 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
-    task = Counting()
+    task = TASKS[args.task]()
 
     records_path = Path(args.records)
     if not records_path.exists():
