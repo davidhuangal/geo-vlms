@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from geo_vlms.example import Example
-from geo_vlms.tasks import Counting
+from geo_vlms.tasks import Counting, Existence
 
 CLASS_MAP = {
     1: "airplane",
@@ -31,6 +31,36 @@ def parse_annotation(annotation_path: os.PathLike) -> pd.DataFrame:
     )
 
 
+def _sorted_jpgs(
+    image_dir: os.PathLike, num_images: int | None, rng: random.Random
+) -> list[Path]:
+    # Sorted so the dataset order (and therefore example ids and results
+    # files) is stable across runs and filesystems. Filtered to .jpg so
+    # filesystem debris (e.g. .DS_Store) never becomes an Example.
+    image_paths = sorted(Path(image_dir).glob("*.jpg"))
+    if num_images is not None:
+        image_paths = sorted(rng.sample(image_paths, num_images))
+    return image_paths
+
+
+def _annotated_counts(image_path: Path, gt_dir: os.PathLike) -> dict[str, int]:
+    gt_path = Path(gt_dir) / image_path.with_suffix(".txt").name
+    if not gt_path.exists():
+        raise FileNotFoundError(f"No such file {gt_path}")
+
+    gt_df = parse_annotation(gt_path)
+
+    counts_per_category = {category_id: 0 for category_id in CLASS_MAP}
+    for _, row in gt_df.iterrows():
+        counts_per_category[row.category_id] += 1
+
+    return {
+        CLASS_MAP[category_id]: count
+        for category_id, count in counts_per_category.items()
+        if count >= 1
+    }
+
+
 def build_counting_dataset(
     pos_dir: os.PathLike,
     gt_dir: os.PathLike,
@@ -40,68 +70,72 @@ def build_counting_dataset(
     seed: int = 0,
 ) -> list[Example]:
     task = Counting()
-
     examples = []
+
     pos_rng = random.Random(f"{seed}-pos")
-    neg_rng = random.Random(f"{seed}-neg")
-
-    # ----- Handle positive samples -----
-    # Sorted so the dataset order (and therefore example ids and results
-    # files) is stable across runs and filesystems. Filtered to .jpg so
-    # filesystem debris (e.g. .DS_Store) never becomes an Example.
-    pos_image_paths = sorted(Path(pos_dir).glob("*.jpg"))
-
-    if num_pos_images is not None:
-        pos_image_paths = sorted(pos_rng.sample(pos_image_paths, num_pos_images))
-
-    for pos_image_path in pos_image_paths:
-        # Find the corresponding GT file
-        gt_path = Path(gt_dir) / pos_image_path.with_suffix(".txt").name
-        if not gt_path.exists():
-            raise FileNotFoundError(f"No such file {gt_path}")
-
-        # Parse GT file to DataFrame
-        gt_df = parse_annotation(gt_path)
-
-        # Measure number of objects of each category in the image
-        counts_per_category = {category_id: 0 for category_id in CLASS_MAP}
-        for _, row in gt_df.iterrows():
-            counts_per_category[row.category_id] += 1
-
-        # Create Examples based on the object counts. Categories absent from
-        # a GT file are skipped rather than emitted as expected=0: positive
-        # images are only annotated for their target classes, so absence
-        # means "not labeled", not "not present" (e.g. parking lots full of
-        # unannotated vehicles). Trustworthy zeros come from the negative
-        # set, which is curated to contain none of the ten classes.
-        for category_id, object_count in counts_per_category.items():
-            if object_count < 1:
-                continue
-            category_name = CLASS_MAP[category_id]
+    for image_path in _sorted_jpgs(pos_dir, num_pos_images, pos_rng):
+        for category_name, count in _annotated_counts(image_path, gt_dir).items():
             examples.append(
                 Example(
-                    id=f"pos/{pos_image_path.stem}:{category_name}",
-                    image_path=str(pos_image_path),
+                    id=f"pos/{image_path.stem}:{category_name}",
+                    image_path=str(image_path),
                     prompt=task.format_prompt(category_name=category_name),
-                    expected=object_count,
+                    expected=count,
                     metadata={"split": "positive", "category": category_name},
                 )
             )
 
-    # ----- Handle negative samples -----
     if neg_dir is not None:
-        neg_image_paths = sorted(Path(neg_dir).glob("*.jpg"))
-        if num_neg_images is not None:
-            neg_image_paths = sorted(neg_rng.sample(neg_image_paths, num_neg_images))
-        for neg_image_path in neg_image_paths:
-            # Create an expected=0 example per category
+        neg_rng = random.Random(f"{seed}-neg")
+        for image_path in _sorted_jpgs(neg_dir, num_neg_images, neg_rng):
             for category_name in CLASS_MAP.values():
                 examples.append(
                     Example(
-                        id=f"neg/{neg_image_path.stem}:{category_name}",
-                        image_path=str(neg_image_path),
+                        id=f"neg/{image_path.stem}:{category_name}",
+                        image_path=str(image_path),
                         prompt=task.format_prompt(category_name=category_name),
                         expected=0,
+                        metadata={"split": "negative", "category": category_name},
+                    )
+                )
+
+    return examples
+
+
+def build_existence_dataset(
+    pos_dir: os.PathLike,
+    gt_dir: os.PathLike,
+    neg_dir: os.PathLike | None = None,
+    num_pos_images: int | None = None,
+    num_neg_images: int | None = None,
+    seed: int = 0,
+) -> list[Example]:
+    task = Existence()
+    examples = []
+
+    pos_rng = random.Random(f"{seed}-pos")
+    for image_path in _sorted_jpgs(pos_dir, num_pos_images, pos_rng):
+        for category_name in _annotated_counts(image_path, gt_dir):
+            examples.append(
+                Example(
+                    id=f"pos/{image_path.stem}:{category_name}",
+                    image_path=str(image_path),
+                    prompt=task.format_prompt(category_name=category_name),
+                    expected=True,
+                    metadata={"split": "positive", "category": category_name},
+                )
+            )
+
+    if neg_dir is not None:
+        neg_rng = random.Random(f"{seed}-neg")
+        for image_path in _sorted_jpgs(neg_dir, num_neg_images, neg_rng):
+            for category_name in CLASS_MAP.values():
+                examples.append(
+                    Example(
+                        id=f"neg/{image_path.stem}:{category_name}",
+                        image_path=str(image_path),
+                        prompt=task.format_prompt(category_name=category_name),
+                        expected=False,
                         metadata={"split": "negative", "category": category_name},
                     )
                 )
