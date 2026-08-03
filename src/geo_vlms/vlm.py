@@ -37,11 +37,17 @@ def build_model_and_processor(model_name: str, device: str):
     Returns:
         The instantiated model and its associated processor.
     """
+    # Pick the dtype based on hardware support
+    if "cuda" in device and not torch.cuda.is_bf16_supported():
+        dtype = torch.float16
+    else:
+        dtype = torch.bfloat16
+
     # Init model and processor
     model = AutoModelForImageTextToText.from_pretrained(
         model_name,
-        dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2" if "cuda" in device else "eager",
+        dtype=dtype,
+        attn_implementation="sdpa" if "cuda" in device else "eager",
     ).to(device)
     processor = AutoProcessor.from_pretrained(model_name)
 
@@ -85,7 +91,7 @@ def prompt_model(
         return_dict=True,
         return_tensors="pt",
         enable_thinking=False,
-    ).to(model.device, dtype=torch.bfloat16)
+    ).to(model.device, dtype=model.dtype)
 
     # Generate the raw tokens from the model
     generated_ids = model.generate(
