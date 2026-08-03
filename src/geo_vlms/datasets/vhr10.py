@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from geo_vlms.counting import format_prompt
 from geo_vlms.example import Example
+from geo_vlms.tasks import Counting
 
 CLASS_MAP = {
     1: "airplane",
@@ -31,10 +31,6 @@ def parse_annotation(annotation_path: os.PathLike) -> pd.DataFrame:
     )
 
 
-def _counting_question(category_name: str) -> str:
-    return f"How many {category_name} objects are in this image?"
-
-
 def build_counting_dataset(
     pos_dir: os.PathLike,
     gt_dir: os.PathLike,
@@ -43,6 +39,8 @@ def build_counting_dataset(
     num_neg_images: int | None = None,
     seed: int = 0,
 ) -> list[Example]:
+    task = Counting()
+
     examples = []
     pos_rng = random.Random(f"{seed}-pos")
     neg_rng = random.Random(f"{seed}-neg")
@@ -84,7 +82,7 @@ def build_counting_dataset(
                 Example(
                     id=f"pos/{pos_image_path.stem}:{category_name}",
                     image_path=str(pos_image_path),
-                    prompt=format_prompt(_counting_question(category_name)),
+                    prompt=task.format_prompt(category_name=category_name),
                     expected=object_count,
                     metadata={"split": "positive", "category": category_name},
                 )
@@ -102,7 +100,7 @@ def build_counting_dataset(
                     Example(
                         id=f"neg/{neg_image_path.stem}:{category_name}",
                         image_path=str(neg_image_path),
-                        prompt=format_prompt(_counting_question(category_name)),
+                        prompt=task.format_prompt(category_name=category_name),
                         expected=0,
                         metadata={"split": "negative", "category": category_name},
                     )
