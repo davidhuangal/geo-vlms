@@ -61,9 +61,8 @@ def test_build_counting_dataset(vhr10_dirs):
         pos_dir=vhr10_dirs.pos, gt_dir=vhr10_dirs.gt, neg_dir=vhr10_dirs.neg
     )
 
-    # Positive images yield one Example per *annotated* category; negative
-    # images yield one expected=0 Example per category.
-    assert len(dataset) == 2 + len(CLASS_MAP)
+    # Every image, positive or negative, yields one Example per category.
+    assert len(dataset) == 2 * len(CLASS_MAP)
 
     by_id = {e.id: e for e in dataset}
 
@@ -71,10 +70,8 @@ def test_build_counting_dataset(vhr10_dirs):
     assert by_id["pos/001:airplane"].expected == 2
     assert by_id["pos/001:ship"].expected == 1
 
-    # Unannotated categories must produce no Example at all: absence from a
-    # positive image's GT does not assert a zero count.
-    assert "pos/001:vehicle" not in by_id
-    assert all(e.expected >= 1 for e in dataset if e.id.startswith("pos/"))
+    # Unannotated categories on positive images assert a zero count
+    assert by_id["pos/001:vehicle"].expected == 0
 
     # Test the negative image
     assert all(e.expected == 0 for e in dataset if e.id.startswith("neg/"))
@@ -85,17 +82,16 @@ def test_build_existence_dataset(vhr10_dirs):
         pos_dir=vhr10_dirs.pos, gt_dir=vhr10_dirs.gt, neg_dir=vhr10_dirs.neg
     )
 
-    # One Example per annotated (image, category) pair
-    # plus one expected=False Example per category per negative image.
-    assert len(dataset) == 2 + len(CLASS_MAP)
+    # Every image, positive or negative, yields one Example per category.
+    assert len(dataset) == 2 * len(CLASS_MAP)
 
     by_id = {e.id: e for e in dataset}
 
     assert by_id["pos/001:airplane"].expected is True
     assert by_id["pos/001:ship"].expected is True
 
-    # Unannotated categories must produce no Example at all for positives
-    assert "pos/001:vehicle" not in by_id
+    # Unannotated categories on positive images assert absence
+    assert by_id["pos/001:vehicle"].expected is False
 
     assert all(e.expected is False for e in dataset if e.id.startswith("neg/"))
 
@@ -117,15 +113,16 @@ def test_real_vhr10_builds():
     pos = [e for e in examples if e.id.startswith("pos/")]
     neg = [e for e in examples if e.id.startswith("neg/")]
 
-    # Every negative image contributes one `expected=0` Example per category.
+    # Every image contributes one Example per category.
+    num_pos_images = len(list((DATA_DIR / "positive_image_set").glob("*.jpg")))
     num_neg_images = len(list((DATA_DIR / "negative_image_set").glob("*.jpg")))
+    assert len(pos) == num_pos_images * len(CLASS_MAP)
     assert len(neg) == num_neg_images * len(CLASS_MAP)
 
     # Golden count of annotated (image, category) pairs in the standard
     # download. Therefore, a change means the annotations or the parser shifted.
-    assert len(pos) == 888
+    assert sum(1 for e in pos if e.expected >= 1) == 888
 
-    assert all(e.expected >= 1 for e in pos)
     assert all(e.expected == 0 for e in neg)
 
 

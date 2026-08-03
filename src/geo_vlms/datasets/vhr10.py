@@ -43,7 +43,7 @@ def _sorted_jpgs(
     return image_paths
 
 
-def _annotated_counts(image_path: Path, gt_dir: os.PathLike) -> dict[str, int]:
+def _category_counts(image_path: Path, gt_dir: os.PathLike) -> dict[str, int]:
     gt_path = Path(gt_dir) / image_path.with_suffix(".txt").name
     if not gt_path.exists():
         raise FileNotFoundError(f"No such file {gt_path}")
@@ -57,7 +57,6 @@ def _annotated_counts(image_path: Path, gt_dir: os.PathLike) -> dict[str, int]:
     return {
         CLASS_MAP[category_id]: count
         for category_id, count in counts_per_category.items()
-        if count >= 1
     }
 
 
@@ -74,7 +73,7 @@ def build_counting_dataset(
 
     pos_rng = random.Random(f"{seed}-pos")
     for image_path in _sorted_jpgs(pos_dir, num_pos_images, pos_rng):
-        for category_name, count in _annotated_counts(image_path, gt_dir).items():
+        for category_name, count in _category_counts(image_path, gt_dir).items():
             examples.append(
                 Example(
                     id=f"pos/{image_path.stem}:{category_name}",
@@ -115,13 +114,13 @@ def build_existence_dataset(
 
     pos_rng = random.Random(f"{seed}-pos")
     for image_path in _sorted_jpgs(pos_dir, num_pos_images, pos_rng):
-        for category_name in _annotated_counts(image_path, gt_dir):
+        for category_name, count in _category_counts(image_path, gt_dir).items():
             examples.append(
                 Example(
                     id=f"pos/{image_path.stem}:{category_name}",
                     image_path=str(image_path),
                     prompt=task.format_prompt(category_name=category_name),
-                    expected=True,
+                    expected=count >= 1,
                     metadata={"split": "positive", "category": category_name},
                 )
             )
