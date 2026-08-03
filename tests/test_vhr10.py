@@ -3,7 +3,12 @@ from typing import NamedTuple
 
 import pytest
 
-from geo_vlms.datasets.vhr10 import CLASS_MAP, build_counting_dataset, parse_annotation
+from geo_vlms.datasets.vhr10 import (
+    CLASS_MAP,
+    build_counting_dataset,
+    build_existence_dataset,
+    parse_annotation,
+)
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "vhr10"
 
@@ -25,10 +30,14 @@ def vhr10_dirs(tmp_path):
     for d in dirs:
         d.mkdir()
 
-    (dirs.pos / "001.jpg").touch()  # images are never opened, empty files suffice
+    # Images aren't used, empty file suffices
+    (dirs.pos / "001.jpg").touch()
+    # Two planes, one ship
     (dirs.gt / "001.txt").write_text(
         "(563,478),(630,573),1\n(310,150),(420,240),1\n(100,100),(150,150),2\n"
     )
+
+    # Images aren't used, empty file suffices
     (dirs.neg / "900.jpg").touch()
     return dirs
 
@@ -69,6 +78,26 @@ def test_build_counting_dataset(vhr10_dirs):
 
     # Test the negative image
     assert all(e.expected == 0 for e in dataset if e.id.startswith("neg/"))
+
+
+def test_build_existence_dataset(vhr10_dirs):
+    dataset = build_existence_dataset(
+        pos_dir=vhr10_dirs.pos, gt_dir=vhr10_dirs.gt, neg_dir=vhr10_dirs.neg
+    )
+
+    # One Example per annotated (image, category) pair
+    # plus one expected=False Example per category per negative image.
+    assert len(dataset) == 2 + len(CLASS_MAP)
+
+    by_id = {e.id: e for e in dataset}
+
+    assert by_id["pos/001:airplane"].expected is True
+    assert by_id["pos/001:ship"].expected is True
+
+    # Unannotated categories must produce no Example at all for positives
+    assert "pos/001:vehicle" not in by_id
+
+    assert all(e.expected is False for e in dataset if e.id.startswith("neg/"))
 
 
 def test_missing_gt_raises(vhr10_dirs):
