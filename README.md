@@ -49,3 +49,18 @@ uv run ruff format .
 ```
 
 The pre-commit hook runs ruff, the pre-push hook also runs pytest, and CI runs all three on every push and PR.
+
+### Checking reproducibility
+
+Inference is meant to be deterministic on a given machine: greedy decoding, seeded sampling, and a provenance sidecar (`<out>.meta.json`) recording the run config.
+To verify end to end, run a tiny eval twice and diff:
+
+```
+uv run python scripts/run_vhr10.py -t counting -m HuggingFaceTB/SmolVLM2-2.2B-Instruct --num-pos 3 --no-neg -o /tmp/repro_a.jsonl
+uv run python scripts/run_vhr10.py -t counting -m HuggingFaceTB/SmolVLM2-2.2B-Instruct --num-pos 3 --no-neg -o /tmp/repro_b.jsonl
+diff /tmp/repro_a.jsonl /tmp/repro_b.jsonl
+```
+
+The records files should be byte-identical.
+In the meta files, everything except `command`, `args.out`, and `started_at` should match - in particular `dataset.sha256` and `model.commit_hash`.
+Worth rerunning after bumping torch or transformers.

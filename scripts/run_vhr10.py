@@ -1,10 +1,15 @@
 import argparse
+import json
+import shlex
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import torch
 
 from geo_vlms.datasets.vhr10 import build_counting_dataset, build_existence_dataset
 from geo_vlms.inference import run_inference
+from geo_vlms.provenance import collect_provenance
 from geo_vlms.vlm import build_model_and_processor
 
 DATASET_BUILDERS = {
@@ -110,6 +115,18 @@ def main():
     )
 
     model, processor = build_model_and_processor(args.model, args.device)
+
+    provenance = collect_provenance(
+        command=shlex.join(sys.argv),
+        args=vars(args),
+        started_at=datetime.now(UTC).isoformat(),
+        model=model,
+        examples=examples,
+    )
+    provenance_out = out_path.with_suffix(".meta.json")
+    with open(provenance_out, "w") as f:
+        json.dump(provenance, f, indent=4)
+    print(f"Wrote run provenance to {provenance_out}")
 
     run_inference(
         examples=examples,
