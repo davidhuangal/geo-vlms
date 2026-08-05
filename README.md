@@ -62,5 +62,6 @@ diff /tmp/repro_a.jsonl /tmp/repro_b.jsonl
 ```
 
 The records files should be byte-identical.
-In the meta files, everything except `command`, `args.out`, and `started_at` should match - in particular `dataset.sha256` and `model.commit_hash`.
+In the meta files, everything except `command`, `args.out`, and `started_at` should match.
+In particular, `dataset.sha256` and `model.commit_hash` should be identical.
 Worth rerunning after bumping torch or transformers.
