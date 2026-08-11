@@ -10,6 +10,12 @@ import torch
 from geo_vlms.datasets.vhr10 import build_counting_dataset, build_existence_dataset
 from geo_vlms.inference import run_inference
 from geo_vlms.provenance import collect_provenance
+from geo_vlms.runs import (
+    drop_truncated_tail,
+    finished_ids,
+    note_resume,
+    validate_resume,
+)
 from geo_vlms.vlm import build_model_and_processor
 
 DATASET_BUILDERS = {
@@ -52,6 +58,17 @@ def parse_args() -> argparse.Namespace:
         type=str,
         required=True,
         help="Path to the output records JSONL file.",
+    )
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Whether to overwrite an existing output file.",
+    )
+    mode.add_argument(
+        "--resume",
+        action="store_true",
+        help="Whether to resume from an existing output file.",
     )
     parser.add_argument(
         "--data-dir",
@@ -99,6 +116,22 @@ def main():
 
     data_dir = Path(args.data_dir)
     out_path = Path(args.out)
+    provenance_out = out_path.with_suffix(".meta.json")
+    if (not args.overwrite and not args.resume) and out_path.exists():
+        raise FileExistsError(
+            f"{args.out} already exists; choose a new --out path, "
+            "use --resume, or pass --overwrite"
+        )
+    if args.resume and not out_path.exists():
+        raise FileNotFoundError(
+            f"{args.out} does not exist; --resume may only be used with an "
+            "existing file"
+        )
+    if args.resume and not provenance_out.exists():
+        raise FileNotFoundError(
+            f"{provenance_out} does not exist; --resume needs the original "
+            "run's provenance file to validate the config"
+        )
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     examples = build_dataset(
@@ -114,20 +147,40 @@ def main():
         f"Loading {args.model} on {args.device}."
     )
 
+    # ----- Resume checks -----
+    prev_meta = None
+    if args.resume:
+        with open(provenance_out) as f:
+            prev_meta = json.load(f)
+        validate_resume(prev_meta, examples, vars(args))
+        if drop_truncated_tail(out_path):
+            print("Dropping truncated final record; its example will rerun.")
+        done = finished_ids(out_path)
+        examples = [e for e in examples if e.id not in done]
+
+    # ----- Model -----
     model, processor = build_model_and_processor(args.model, args.device)
 
-    provenance = collect_provenance(
-        command=shlex.join(sys.argv),
-        args=vars(args),
-        started_at=datetime.now(UTC).isoformat(),
-        model=model,
-        examples=examples,
-    )
-    provenance_out = out_path.with_suffix(".meta.json")
+    # ----- Handling provenance -----
+    if prev_meta is not None:
+        provenance = note_resume(
+            prev_meta,
+            command=shlex.join(sys.argv),
+            started_at=datetime.now(UTC).isoformat(),
+        )
+    else:
+        provenance = collect_provenance(
+            command=shlex.join(sys.argv),
+            args=vars(args),
+            started_at=datetime.now(UTC).isoformat(),
+            model=model,
+            examples=examples,
+        )
     with open(provenance_out, "w") as f:
         json.dump(provenance, f, indent=4)
     print(f"Wrote run provenance to {provenance_out}")
 
+    # ----- Inference -----
     run_inference(
         examples=examples,
         model=model,
@@ -135,6 +188,7 @@ def main():
         out_path=out_path,
         model_name=args.model,
         max_new_tokens=args.max_new_tokens,
+        append=args.resume,
     )
     print(f"Wrote records to {out_path}")
 
