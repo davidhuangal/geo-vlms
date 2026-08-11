@@ -59,6 +59,21 @@ def env_info(device: str) -> dict[str, Any]:
     }
 
 
+def dataset_sha256(examples: list[Example]) -> str:
+    """
+    Fingerprint an example list, independent of ordering.
+
+    Args:
+        examples: The examples to hash.
+
+    Returns:
+        A sha256 hex digest of the sorted, serialized examples.
+    """
+    examples_sorted = sorted(examples, key=lambda x: x.id)
+    examples_json = json.dumps([asdict(e) for e in examples_sorted], sort_keys=True)
+    return hashlib.sha256(examples_json.encode()).hexdigest()
+
+
 def collect_provenance(
     command: str,
     args: dict,
@@ -97,9 +112,7 @@ def collect_provenance(
     # ----- Dataset Meta -----
     dataset_meta = {}
     dataset_meta["num_examples"] = len(examples)
-    examples_sorted = sorted(examples, key=lambda x: x.id)
-    examples_json = json.dumps([asdict(e) for e in examples_sorted], sort_keys=True)
-    dataset_meta["sha256"] = hashlib.sha256(examples_json.encode()).hexdigest()
+    dataset_meta["sha256"] = dataset_sha256(examples)
     meta["dataset"] = dataset_meta
 
     # ----- Environment Meta -----
