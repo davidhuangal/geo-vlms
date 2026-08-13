@@ -2,12 +2,13 @@ import copy
 import json
 import random
 import re
+import subprocess
 from types import SimpleNamespace
 
 import pytest
 
 from geo_vlms.example import Example
-from geo_vlms.provenance import collect_provenance
+from geo_vlms.provenance import collect_provenance, git_info
 
 
 @pytest.fixture
@@ -165,3 +166,20 @@ def test_provenance_valid_data(provenance, sample_run, dummy_model):
 def test_provenance_serializable(provenance):
     json_string = json.dumps(provenance)
     assert json.loads(json_string) == provenance
+
+
+@pytest.mark.parametrize(
+    "error",
+    [FileNotFoundError(), subprocess.CalledProcessError(128, "git")],
+    ids=["git-missing", "not-a-repo"],
+)
+def test_git_info_unavailable(monkeypatch, error):
+    """git_info falls back to None when git is absent or the tree isn't a repo."""
+
+    def fake_check_output(*args, **kwargs):
+        raise error
+
+    monkeypatch.setattr(
+        "geo_vlms.provenance.subprocess.check_output", fake_check_output
+    )
+    assert git_info() is None
