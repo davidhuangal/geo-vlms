@@ -11,10 +11,17 @@ wheels/
 
 # Misc
 .DS_Store
+.vscode/
+
+# Test coverage
+.coverage
+coverage.xml
+htmlcov/
 
 # Experiment artifacts (raw runs, metrics, figures)
 results/
 data/
+scratch/
 
 # Personal backlog
 TODO.md

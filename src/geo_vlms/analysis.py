@@ -28,8 +28,13 @@ def score_records(
         parsed_response = parse(model_response)
         scores.append(score(parsed_response, expected_response))
 
-    metrics_df = pd.DataFrame(scores, index=records_df.index)
-    metrics_df = records_df.join(metrics_df)
+    scores_df = pd.DataFrame(scores)
+    metrics_df = pd.concat(
+        [records_df.reset_index(drop=True), scores_df],
+        axis="columns",
+        verify_integrity=True,
+    )
+    metrics_df.index = records_df.index
     return metrics_df
 
 
