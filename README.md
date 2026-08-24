@@ -47,6 +47,17 @@ uv run scripts/run_vhr10.py -t counting -m org/model-name -b llama-server --base
 `-m` does not load anything here; it labels the records, and the run warns when it doesn't match the model the server reports.
 Greedy sampling and thinking-mode disabling are requested per-request, so results are deterministic for a fixed GGUF and llama.cpp build.
 
+## Container
+
+```
+docker build -t geo-vlms .
+docker run --rm -v ./data:/app/data -v ./results:/app/results geo-vlms \
+  python scripts/run_vhr10.py -t counting -m org/model-name -b llama-server --base-url http://host:8080/v1 -o results/model_counting.jsonl
+```
+
+The image has only the llama-server backend; it needs no GPU or torch.
+`BASE_IMAGE`, `PIP_INDEX_URL`, and `PIP_EXTRA_INDEX_URL` are build args for building from an internal base image and package mirror.
+
 ## Analyzing results
 
 ```
