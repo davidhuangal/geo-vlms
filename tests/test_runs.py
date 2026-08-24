@@ -29,12 +29,26 @@ def examples() -> list[Example]:
     return make_examples(3)
 
 
+class StubBackend:
+    """Backend with a fixed self-description."""
+
+    def __init__(self, description: dict | None = None):
+        self._description = description or {"kind": "stub", "name": "stub/model"}
+
+    def generate(self, prompt, image_paths, max_new_tokens):
+        return "canned response"
+
+    def describe(self):
+        return dict(self._description)
+
+
 @pytest.fixture
 def prev_meta(examples) -> dict:
     """Sidecar meta matching the `examples` fixture."""
     return {
         "args": {"model": "stub/model", "max_new_tokens": 64},
         "dataset": {"sha256": dataset_sha256(examples)},
+        "backend": StubBackend().describe(),
     }
 
 
@@ -43,24 +57,39 @@ def matching_args() -> dict:
 
 
 def test_validate_resume_matching_config_passes(prev_meta, examples):
-    validate_resume(prev_meta, examples, matching_args())
+    validate_resume(prev_meta, examples, matching_args(), StubBackend())
 
 
 def test_validate_resume_dataset_mismatch_raises(prev_meta):
     with pytest.raises(ValueError, match="Dataset does not match"):
-        validate_resume(prev_meta, make_examples(2), matching_args())
+        validate_resume(prev_meta, make_examples(2), matching_args(), StubBackend())
 
 
 def test_validate_resume_model_mismatch_raises(prev_meta, examples):
     args = matching_args() | {"model": "other/model"}
     with pytest.raises(ValueError, match="--model=other/model"):
-        validate_resume(prev_meta, examples, args)
+        validate_resume(prev_meta, examples, args, StubBackend())
 
 
 def test_validate_resume_max_new_tokens_mismatch_raises(prev_meta, examples):
     args = matching_args() | {"max_new_tokens": 128}
     with pytest.raises(ValueError, match="--max-new-tokens=128"):
-        validate_resume(prev_meta, examples, args)
+        validate_resume(prev_meta, examples, args, StubBackend())
+
+
+def test_validate_resume_backend_mismatch_raises(prev_meta, examples):
+    other = StubBackend({"kind": "stub", "name": "other/backend"})
+    with pytest.raises(ValueError, match="Backend does not match"):
+        validate_resume(prev_meta, examples, matching_args(), other)
+
+
+def test_validate_resume_ignores_base_url(prev_meta, examples):
+    # Same backend reached through a different address should still resume
+    prev_meta["backend"]["base_url"] = "http://old-tunnel:8080/v1"
+    moved = StubBackend(
+        {"kind": "stub", "name": "stub/model", "base_url": "http://new-tunnel:9090/v1"}
+    )
+    validate_resume(prev_meta, examples, matching_args(), moved)
 
 
 def test_drop_truncated_tail_clean_file_untouched(tmp_path):

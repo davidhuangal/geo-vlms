@@ -1,6 +1,5 @@
 import json
 
-from geo_vlms import inference
 from geo_vlms.example import Example
 from geo_vlms.inference import run_inference
 
@@ -11,24 +10,24 @@ MOCK_EXAMPLES = [
 ]
 
 
-def test_inference_writes_one_record_per_example(monkeypatch, tmp_path):
-    # Monkey patching to avoid an expensive model call
-    monkeypatch.setattr(
-        target=inference,
-        name="prompt_model",
-        value=lambda prompt, image_paths, model, processor, max_new_tokens: (
-            "canned response"
-        ),
-    )
+class StubBackend:
+    """Canned backend to avoid an expensive model call."""
 
+    def generate(self, prompt, image_paths, max_new_tokens):
+        return "canned response"
+
+    def describe(self):
+        return {"kind": "stub"}
+
+
+def test_inference_writes_one_record_per_example(tmp_path):
     # Denote the output path
     out_path = tmp_path / "runs.jsonl"
 
     # Run inference and read the output
     records = run_inference(
         examples=MOCK_EXAMPLES,
-        model=object(),
-        processor=object(),
+        backend=StubBackend(),
         out_path=out_path,
         model_name="fake-model",
     )

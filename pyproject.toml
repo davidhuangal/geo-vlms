@@ -9,6 +9,7 @@ dependencies = [
     "matplotlib>=3.11.1",
     # Required at runtime by SmolVLM's processor, not imported by our code.
     "num2words>=0.5.14",
+    "openai>=3.3.0",
     "pandas>=3.0.3",
     "pillow>=12.3.0",
     "seaborn>=0.13.2",

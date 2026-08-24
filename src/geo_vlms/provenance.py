@@ -7,9 +7,7 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import Any
 
-import torch
-import transformers
-
+from geo_vlms.backends import Backend
 from geo_vlms.example import Example
 
 
@@ -37,25 +35,17 @@ def git_info() -> dict[str, Any] | None:
     return {"sha": sha, "dirty": bool(status.strip())}
 
 
-def env_info(device: str) -> dict[str, Any]:
+def env_info() -> dict[str, Any]:
     """
     Collect the software and hardware environment of a run.
-
-    Args:
-        device: The torch device the run targets. E.g. 'cuda' or 'mps'.
 
     Returns:
         Library versions, platform, and device name.
     """
-    device_name = torch.cuda.get_device_name() if "cuda" in device else device
-
     return {
         "python": platform.python_version(),
         "geo_vlms": version("geo_vlms"),
-        "torch": torch.__version__,
-        "transformers": transformers.__version__,
         "platform": platform.platform(),
-        "device_name": device_name,
     }
 
 
@@ -78,7 +68,7 @@ def collect_provenance(
     command: str,
     args: dict,
     started_at: str,
-    model,
+    backend: Backend,
     examples: list[Example],
 ) -> dict[str, Any]:
     """
@@ -88,7 +78,7 @@ def collect_provenance(
         command: The command line that launched the run.
         args: The resolved CLI arguments.
         started_at: ISO-8601 timestamp of when the run started.
-        model: The loaded VLM model.
+        backend: The currently-loaded backend.
         examples: The examples the run will execute.
 
     Returns:
@@ -101,13 +91,8 @@ def collect_provenance(
     meta["args"] = args
     meta["started_at"] = started_at
 
-    # ----- Model Meta -----
-    model_meta = {}
-    model_meta["name"] = args["model"]
-    model_meta["commit_hash"] = model.config._commit_hash
-    model_meta["attn_implementation"] = model.config._attn_implementation
-    model_meta["dtype"] = str(model.dtype).removeprefix("torch.")
-    meta["model"] = model_meta
+    # ----- Backend Meta -----
+    meta["backend"] = backend.describe()
 
     # ----- Dataset Meta -----
     dataset_meta = {}
@@ -116,7 +101,7 @@ def collect_provenance(
     meta["dataset"] = dataset_meta
 
     # ----- Environment Meta -----
-    meta["env"] = env_info(args["device"])
+    meta["env"] = env_info()
     meta["git"] = git_info()
 
     return meta

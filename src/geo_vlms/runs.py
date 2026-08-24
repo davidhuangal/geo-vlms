@@ -4,12 +4,16 @@ from pathlib import Path
 from typing import Any
 
 from geo_vlms.analysis import load_records
+from geo_vlms.backends import Backend
 from geo_vlms.example import Example
 from geo_vlms.provenance import dataset_sha256
 
 
 def validate_resume(
-    prev_meta: dict[str, Any], examples: list[Example], args: dict[str, Any]
+    prev_meta: dict[str, Any],
+    examples: list[Example],
+    args: dict[str, Any],
+    backend: Backend,
 ) -> None:
     """
     Check that a resuming run's config matches the original run's sidecar.
@@ -18,6 +22,7 @@ def validate_resume(
         prev_meta: The original run's parsed provenance sidecar.
         examples: The full example list built from the current args.
         args: The resolved CLI arguments of the resuming run.
+        backend: The backend being used for this resumed run.
 
     Raises:
         ValueError: When the dataset or a generation-affecting arg differs.
@@ -33,6 +38,18 @@ def validate_resume(
                 f"--{key.replace('_', '-')}={args[key]} does not "
                 f"match the original run's {prev_meta['args'][key]}"
             )
+
+    # base_url is ignored since the same server may be reached through a
+    # different tunnel
+    prev_backend = {
+        k: v for k, v in prev_meta.get("backend", {}).items() if k != "base_url"
+    }
+    curr_backend = {k: v for k, v in backend.describe().items() if k != "base_url"}
+    if prev_backend != curr_backend:
+        raise ValueError(
+            "Backend does not match the original run's.\n"
+            f"Old: {prev_backend}\nNew: {curr_backend}"
+        )
 
 
 def drop_truncated_tail(out_path: str | os.PathLike) -> bool:

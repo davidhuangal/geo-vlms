@@ -5,8 +5,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-import torch
-
+from geo_vlms.backends import Backend
 from geo_vlms.datasets.vhr10 import build_counting_dataset, build_existence_dataset
 from geo_vlms.inference import run_inference
 from geo_vlms.provenance import collect_provenance
@@ -16,7 +15,6 @@ from geo_vlms.runs import (
     note_resume,
     validate_resume,
 )
-from geo_vlms.vlm import build_model_and_processor
 
 DATASET_BUILDERS = {
     "counting": build_counting_dataset,
@@ -24,12 +22,34 @@ DATASET_BUILDERS = {
 }
 
 
-def default_device() -> str:
-    if torch.cuda.is_available():
-        return "cuda"
-    if torch.backends.mps.is_available():
-        return "mps"
-    return "cpu"
+def build_backend(
+    backend_type: str, model_name: str, device: str | None, base_url: str | None
+) -> Backend:
+    if backend_type == "huggingface":
+        import torch
+
+        from geo_vlms.backends.huggingface import HuggingFaceBackend
+
+        if device is None:
+            if torch.cuda.is_available():
+                device = "cuda"
+            elif torch.backends.mps.is_available():
+                device = "mps"
+            else:
+                device = "cpu"
+        return HuggingFaceBackend(model_name=model_name, device=device)
+    if backend_type == "llama-server":
+        from geo_vlms.backends.llama_server import LlamaServerBackend
+
+        backend = LlamaServerBackend(base_url=base_url)
+        alias = backend.describe().get("model_alias")
+        if alias is not None and alias != model_name:
+            print(
+                f"Warning: --model {model_name} does not match the server's "
+                f"model {alias}; records will be labeled {model_name}."
+            )
+        return backend
+    raise ValueError(f"Unknown backend: {backend_type}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,6 +71,14 @@ def parse_args() -> argparse.Namespace:
         type=str,
         required=True,
         help="HuggingFace model name, e.g. Qwen/Qwen2.5-VL-3B-Instruct.",
+    )
+    parser.add_argument(
+        "-b",
+        "--backend",
+        type=str,
+        required=True,
+        choices=["huggingface", "llama-server"],
+        help="The desired backend. Allowed: %(choices)s",
     )
     parser.add_argument(
         "-o",
@@ -98,8 +126,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--device",
         type=str,
-        default=default_device(),
-        help="Torch device for the model. Default: auto-detect.",
+        default=None,
+        help="Torch device for the huggingface backend. Default: auto-detect.",
     )
     parser.add_argument(
         "--max-new-tokens",
@@ -107,7 +135,22 @@ def parse_args() -> argparse.Namespace:
         default=64,
         help="Max tokens the model may generate per example.",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--base-url",
+        type=str,
+        default=None,
+        help="Base URL of the llama-server, e.g. http://localhost:8080/v1",
+    )
+    args = parser.parse_args()
+
+    if args.backend == "llama-server" and args.base_url is None:
+        parser.error("--backend llama-server requires --base-url")
+    if args.backend != "llama-server" and args.base_url is not None:
+        parser.error("--base-url only applies to --backend llama-server")
+    if args.backend != "huggingface" and args.device is not None:
+        parser.error("--device only applies to --backend huggingface")
+
+    return args
 
 
 def main():
@@ -144,7 +187,15 @@ def main():
     )
     print(
         f"Built {len(examples)} {args.task} examples. "
-        f"Loading {args.model} on {args.device}."
+        f"Using {args.model} via {args.backend}."
+    )
+
+    # ----- Backend -----
+    backend = build_backend(
+        backend_type=args.backend,
+        model_name=args.model,
+        device=args.device,
+        base_url=args.base_url,
     )
 
     # ----- Resume checks -----
@@ -152,14 +203,13 @@ def main():
     if args.resume:
         with open(provenance_out) as f:
             prev_meta = json.load(f)
-        validate_resume(prev_meta, examples, vars(args))
+        validate_resume(
+            prev_meta=prev_meta, examples=examples, args=vars(args), backend=backend
+        )
         if drop_truncated_tail(out_path):
             print("Dropping truncated final record; its example will rerun.")
         done = finished_ids(out_path)
         examples = [e for e in examples if e.id not in done]
-
-    # ----- Model -----
-    model, processor = build_model_and_processor(args.model, args.device)
 
     # ----- Handling provenance -----
     if prev_meta is not None:
@@ -173,7 +223,7 @@ def main():
             command=shlex.join(sys.argv),
             args=vars(args),
             started_at=datetime.now(UTC).isoformat(),
-            model=model,
+            backend=backend,
             examples=examples,
         )
     with open(provenance_out, "w") as f:
@@ -183,8 +233,7 @@ def main():
     # ----- Inference -----
     run_inference(
         examples=examples,
-        model=model,
-        processor=processor,
+        backend=backend,
         out_path=out_path,
         model_name=args.model,
         max_new_tokens=args.max_new_tokens,
