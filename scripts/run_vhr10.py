@@ -5,8 +5,6 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-import torch
-
 from geo_vlms.backends import Backend
 from geo_vlms.datasets.vhr10 import build_counting_dataset, build_existence_dataset
 from geo_vlms.inference import run_inference
@@ -24,20 +22,27 @@ DATASET_BUILDERS = {
 }
 
 
-def default_device() -> str:
-    if torch.cuda.is_available():
-        return "cuda"
-    if torch.backends.mps.is_available():
-        return "mps"
-    return "cpu"
-
-
-def build_backend(backend_type: str, model_name: str, device: str) -> Backend:
+def build_backend(
+    backend_type: str, model_name: str, device: str | None, base_url: str | None
+) -> Backend:
     if backend_type == "huggingface":
-        from geo_vlms.backends.huggingface import HuggingFaceBackend as backend
-    elif backend_type == "llama-server":
-        from geo_vlms.backends.llama_server import LlamaServerBackend as backend
-    return backend(model_name=model_name, device=device)
+        import torch
+
+        from geo_vlms.backends.huggingface import HuggingFaceBackend
+
+        if device is None:
+            if torch.cuda.is_available():
+                device = "cuda"
+            elif torch.backends.mps.is_available():
+                device = "mps"
+            else:
+                device = "cpu"
+        return HuggingFaceBackend(model_name=model_name, device=device)
+    if backend_type == "llama-server":
+        from geo_vlms.backends.llama_server import LlamaServerBackend
+
+        return LlamaServerBackend(base_url=base_url)
+    raise ValueError(f"Unknown backend: {backend_type}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -114,8 +119,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--device",
         type=str,
-        default=default_device(),
-        help="Torch device for the model. Default: auto-detect.",
+        default=None,
+        help="Torch device for the huggingface backend. Default: auto-detect.",
     )
     parser.add_argument(
         "--max-new-tokens",
@@ -123,7 +128,22 @@ def parse_args() -> argparse.Namespace:
         default=64,
         help="Max tokens the model may generate per example.",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--base-url",
+        type=str,
+        default=None,
+        help="Base URL of the llama-server, e.g. http://localhost:8080/v1",
+    )
+    args = parser.parse_args()
+
+    if args.backend == "llama-server" and args.base_url is None:
+        parser.error("--backend llama-server requires --base-url")
+    if args.backend != "llama-server" and args.base_url is not None:
+        parser.error("--base-url only applies to --backend llama-server")
+    if args.backend != "huggingface" and args.device is not None:
+        parser.error("--device only applies to --backend huggingface")
+
+    return args
 
 
 def main():
@@ -160,7 +180,7 @@ def main():
     )
     print(
         f"Built {len(examples)} {args.task} examples. "
-        f"Loading {args.model} on {args.device}."
+        f"Using {args.model} via {args.backend}."
     )
 
     # ----- Resume checks -----
@@ -176,7 +196,10 @@ def main():
 
     # ----- Backend -----
     backend = build_backend(
-        backend_type=args.backend, model_name=args.model, device=args.device
+        backend_type=args.backend,
+        model_name=args.model,
+        device=args.device,
+        base_url=args.base_url,
     )
 
     # ----- Handling provenance -----
