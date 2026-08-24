@@ -183,17 +183,6 @@ def main():
         f"Using {args.model} via {args.backend}."
     )
 
-    # ----- Resume checks -----
-    prev_meta = None
-    if args.resume:
-        with open(provenance_out) as f:
-            prev_meta = json.load(f)
-        validate_resume(prev_meta, examples, vars(args))
-        if drop_truncated_tail(out_path):
-            print("Dropping truncated final record; its example will rerun.")
-        done = finished_ids(out_path)
-        examples = [e for e in examples if e.id not in done]
-
     # ----- Backend -----
     backend = build_backend(
         backend_type=args.backend,
@@ -201,6 +190,19 @@ def main():
         device=args.device,
         base_url=args.base_url,
     )
+
+    # ----- Resume checks -----
+    prev_meta = None
+    if args.resume:
+        with open(provenance_out) as f:
+            prev_meta = json.load(f)
+        validate_resume(
+            prev_meta=prev_meta, examples=examples, args=vars(args), backend=backend
+        )
+        if drop_truncated_tail(out_path):
+            print("Dropping truncated final record; its example will rerun.")
+        done = finished_ids(out_path)
+        examples = [e for e in examples if e.id not in done]
 
     # ----- Handling provenance -----
     if prev_meta is not None:
