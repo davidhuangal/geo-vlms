@@ -3,16 +3,22 @@ name = "geo-vlms"
 version = "0.1.0"
 description = "A reproducible harness for evaluating vision-language models on remote-sensing imagery."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
-    "accelerate>=1.14.0",
+    "httpx>=0.28.1",
     "matplotlib>=3.11.1",
+    "openai>=1,<3",
+    "pandas>=3.0.3",
+    "seaborn>=0.13.2",
+    "tqdm>=4.69.0",
+]
+
+[project.optional-dependencies]
+hf = [
+    "accelerate>=1.14.0",
     # Required at runtime by SmolVLM's processor, not imported by our code.
     "num2words>=0.5.14",
-    "openai>=3.3.0",
-    "pandas>=3.0.3",
     "pillow>=12.3.0",
-    "seaborn>=0.13.2",
     "torch>=2.13.0",
     "torchvision>=0.28.0",
     "transformers>=5.14.1",
@@ -27,6 +33,7 @@ packages = ["src/geo_vlms"]
 
 [dependency-groups]
 dev = [
+    "geo-vlms[hf]",
     "ipython>=9.15.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
@@ -38,7 +45,7 @@ testpaths = ["tests"]
 xfail_strict = true
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "RUF"]
