@@ -10,6 +10,9 @@ uv sync
 git config core.hooksPath .githooks   # enable pre-commit / pre-push hooks
 ```
 
+The huggingface backend needs the `hf` extra (torch, transformers, and friends), which `uv sync` includes through the dev group.
+A plain `pip install .` gives only the llama-server backend and the analysis tools; use `pip install ".[hf]"` for both.
+
 ## Data
 
 Get the [NWPU VHR-10 dataset](https://gcheng-nwpu.github.io/) and unpack it under `data/vhr10` (the `data/` directory is gitignored):
