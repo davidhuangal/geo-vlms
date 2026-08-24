@@ -101,10 +101,15 @@ class LlamaServerBackend:
             temperature=self.temperature,
             seed=self.seed,
             max_tokens=max_new_tokens,
-            # top_k is llama-server-specific
-            extra_body={"top_k": self.top_k},
+            # top_k and chat_template_kwargs are llama-server-specific.
+            extra_body={
+                "top_k": self.top_k,
+                "chat_template_kwargs": {"enable_thinking": False},
+            },
         )
         response = result.choices[0].message.content
+        if response is None:
+            raise RuntimeError("Server response has no message content.")
 
         return response
 
