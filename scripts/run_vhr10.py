@@ -7,6 +7,7 @@ from pathlib import Path
 
 import torch
 
+from geo_vlms.backends import Backend
 from geo_vlms.datasets.vhr10 import build_counting_dataset, build_existence_dataset
 from geo_vlms.inference import run_inference
 from geo_vlms.provenance import collect_provenance
@@ -16,7 +17,6 @@ from geo_vlms.runs import (
     note_resume,
     validate_resume,
 )
-from geo_vlms.vlm import build_model_and_processor
 
 DATASET_BUILDERS = {
     "counting": build_counting_dataset,
@@ -30,6 +30,14 @@ def default_device() -> str:
     if torch.backends.mps.is_available():
         return "mps"
     return "cpu"
+
+
+def build_backend(backend_type: str, model_name: str, device: str) -> Backend:
+    if backend_type == "huggingface":
+        from geo_vlms.backends.huggingface import HuggingFaceBackend as backend
+    elif backend_type == "llama-server":
+        from geo_vlms.backends.llama_server import LlamaServerBackend as backend
+    return backend(model_name=model_name, device=device)
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,6 +59,14 @@ def parse_args() -> argparse.Namespace:
         type=str,
         required=True,
         help="HuggingFace model name, e.g. Qwen/Qwen2.5-VL-3B-Instruct.",
+    )
+    parser.add_argument(
+        "-b",
+        "--backend",
+        type=str,
+        required=True,
+        choices=["huggingface", "llama-server"],
+        help="The desired backend. Allowed: %(choices)s",
     )
     parser.add_argument(
         "-o",
@@ -158,8 +174,10 @@ def main():
         done = finished_ids(out_path)
         examples = [e for e in examples if e.id not in done]
 
-    # ----- Model -----
-    model, processor = build_model_and_processor(args.model, args.device)
+    # ----- Backend -----
+    backend = build_backend(
+        backend_type=args.backend, model_name=args.model, device=args.device
+    )
 
     # ----- Handling provenance -----
     if prev_meta is not None:
@@ -173,7 +191,7 @@ def main():
             command=shlex.join(sys.argv),
             args=vars(args),
             started_at=datetime.now(UTC).isoformat(),
-            model=model,
+            backend=backend,
             examples=examples,
         )
     with open(provenance_out, "w") as f:
@@ -183,8 +201,7 @@ def main():
     # ----- Inference -----
     run_inference(
         examples=examples,
-        model=model,
-        processor=processor,
+        backend=backend,
         out_path=out_path,
         model_name=args.model,
         max_new_tokens=args.max_new_tokens,
