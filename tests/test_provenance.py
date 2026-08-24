@@ -3,23 +3,28 @@ import json
 import random
 import re
 import subprocess
-from types import SimpleNamespace
 
 import pytest
 
 from geo_vlms.example import Example
 from geo_vlms.provenance import collect_provenance, git_info
 
+STUB_DESCRIPTION = {
+    "kind": "stub",
+    "name": "Qwen/Qwen2.5-VL-3B-Instruct",
+    "commit_hash": "66285546d2b821cf421d4f5eb2576359d3770cd3",
+    "dtype": "bfloat16",
+}
 
-@pytest.fixture
-def dummy_model():
-    """Fixture to create dummy model to avoid expensive download / load"""
-    model = SimpleNamespace()
-    model.config = SimpleNamespace()
-    model.config._commit_hash = "66285546d2b821cf421d4f5eb2576359d3770cd3"
-    model.config._attn_implementation = "eager"
-    model.dtype = "torch.bfloat16"
-    return model
+
+class StubBackend:
+    """Canned backend to avoid an expensive model load."""
+
+    def generate(self, prompt, image_paths, max_new_tokens):
+        return "canned response"
+
+    def describe(self):
+        return dict(STUB_DESCRIPTION)
 
 
 def generate_examples(n: int) -> list[Example]:
@@ -46,13 +51,15 @@ def sample_run():
     """Fixture to create a dummy inference run."""
     command = (
         "scripts/run_vhr10.py -t counting -m Qwen/Qwen2.5-VL-3B-Instruct "
-        "-o results/dummy.jsonl --data-dir data/vhr10 --num-pos 1 --num-neg 1 "
-        "--seed 0 --device mps"
+        "-b huggingface -o results/dummy.jsonl --data-dir data/vhr10 "
+        "--num-pos 1 --num-neg 1 --seed 0 --device mps"
     )
 
     args = {
         "task": "counting",
         "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+        "backend": "huggingface",
+        "base_url": None,
         "out": "results/dummy.jsonl",
         "data_dir": "data/vhr10",
         "num_pos": 1,
@@ -71,14 +78,14 @@ def sample_run():
 
 
 @pytest.fixture
-def provenance(sample_run, dummy_model):
+def provenance(sample_run):
     """Fixture to collect provenance for the sample run."""
     command, args, started_at, examples = sample_run
     return collect_provenance(
         command=command,
         args=args,
         started_at=started_at,
-        model=dummy_model,
+        backend=StubBackend(),
         examples=examples,
     )
 
@@ -88,41 +95,27 @@ def test_provenance_keys(provenance):
     Ensure we have the expected keys. Set as exact == so that it breaks if
     new keys are added to the provenance code.
     """
-    assert {"command", "args", "started_at", "model", "dataset", "env", "git"} == set(
+    assert {"command", "args", "started_at", "backend", "dataset", "env", "git"} == set(
         provenance
     )
-
-    model_meta = provenance["model"]
-    assert {"name", "commit_hash", "attn_implementation", "dtype"} == set(model_meta)
 
     data_meta = provenance["dataset"]
     assert {"num_examples", "sha256"} == set(data_meta)
 
     env_meta = provenance["env"]
-    assert {
-        "python",
-        "geo_vlms",
-        "torch",
-        "transformers",
-        "platform",
-        "device_name",
-    } == set(env_meta)
+    assert {"python", "geo_vlms", "platform"} == set(env_meta)
 
     git_meta = provenance["git"]
     if git_meta is not None:
         assert {"sha", "dirty"} == set(git_meta)
 
 
-def test_provenance_model(provenance):
-    model_meta = provenance["model"]
-
-    assert model_meta["name"] == "Qwen/Qwen2.5-VL-3B-Instruct"
-    assert model_meta["commit_hash"] == "66285546d2b821cf421d4f5eb2576359d3770cd3"
-    assert model_meta["attn_implementation"] == "eager"
-    assert model_meta["dtype"] == "bfloat16"
+def test_provenance_backend(provenance):
+    # The backend section is the backend's self-description, verbatim
+    assert provenance["backend"] == STUB_DESCRIPTION
 
 
-def test_provenance_valid_data(provenance, sample_run, dummy_model):
+def test_provenance_valid_data(provenance, sample_run):
     command, args, started_at, examples = sample_run
     dataset_hash = provenance["dataset"]["sha256"]
     assert re.fullmatch(r"[a-f0-9]{64}", dataset_hash)
@@ -134,7 +127,7 @@ def test_provenance_valid_data(provenance, sample_run, dummy_model):
         command=command,
         args=args,
         started_at=started_at,
-        model=dummy_model,
+        backend=StubBackend(),
         examples=shuffled_examples,
     )
     assert provenance_shuffled["dataset"]["sha256"] == dataset_hash
@@ -145,7 +138,7 @@ def test_provenance_valid_data(provenance, sample_run, dummy_model):
         command=command,
         args=args,
         started_at=started_at,
-        model=dummy_model,
+        backend=StubBackend(),
         examples=diff_examples,
     )
     assert provenance_diff_examples["dataset"]["sha256"] != dataset_hash
@@ -157,7 +150,7 @@ def test_provenance_valid_data(provenance, sample_run, dummy_model):
         command=command,
         args=args,
         started_at=started_at,
-        model=dummy_model,
+        backend=StubBackend(),
         examples=one_off_examples,
     )
     assert provenance_one_off_examples["dataset"]["sha256"] != dataset_hash
