@@ -41,7 +41,14 @@ def build_backend(
     if backend_type == "llama-server":
         from geo_vlms.backends.llama_server import LlamaServerBackend
 
-        return LlamaServerBackend(base_url=base_url)
+        backend = LlamaServerBackend(base_url=base_url)
+        alias = backend.describe().get("model_alias")
+        if alias is not None and alias != model_name:
+            print(
+                f"Warning: --model {model_name} does not match the server's "
+                f"model {alias}; records will be labeled {model_name}."
+            )
+        return backend
     raise ValueError(f"Unknown backend: {backend_type}")
 
 
