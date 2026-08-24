@@ -1,26 +1,28 @@
 # GEO-VLMs
 
-A harness for evaluating vision-language models on remote-sensing imagery.
-Right now it runs two tasks: existence ("Are there any ships in this image?") and counting ("How many ships are in this image?"), against any HuggingFace image-text-to-text model loaded in-process, or against a [llama-server](https://github.com/ggml-org/llama.cpp) instance over HTTP.
+Evaluates vision-language models on remote-sensing imagery.
+It currently runs two tasks, existence ("Are there any ships in this image?") and counting ("How many ships are in this image?").
+Models either load in-process from HuggingFace or sit behind a [llama-server](https://github.com/ggml-org/llama.cpp).
 
 ## Setup
 
 ```
 uv sync
-git config core.hooksPath .githooks   # enable pre-commit / pre-push hooks
+git config core.hooksPath .githooks
 ```
 
-The huggingface backend needs the `hf` extra (torch, transformers, and friends), which `uv sync` includes through the dev group.
-A plain `pip install .` gives only the llama-server backend and the analysis tools; use `pip install ".[hf]"` for both.
+`uv sync` installs everything, including the `hf` extra (torch, transformers) that the huggingface backend needs.
+A plain `pip install .` gives you the llama-server backend and the analysis tools.
+Add `".[hf]"` to get the huggingface backend as well.
 
 ## Data
 
-Get the [NWPU VHR-10 dataset](https://gcheng-nwpu.github.io/) and unpack it under `data/vhr10` (the `data/` directory is gitignored):
+Unpack [NWPU VHR-10](https://gcheng-nwpu.github.io/) under `data/vhr10` (gitignored):
 
 ```
 data/vhr10/
-  positive_image_set/    # 650 images, each containing at least one annotated object
-  negative_image_set/    # 150 images containing none of the ten categories
+  positive_image_set/    # 650 images with at least one annotated object
+  negative_image_set/    # 150 images with none of the ten categories
   ground_truth/          # one bounding-box file per positive image
 ```
 
@@ -30,22 +32,22 @@ data/vhr10/
 uv run scripts/run_vhr10.py -t counting -m Qwen/Qwen2.5-VL-3B-Instruct -b huggingface -o results/qwen25_counting.jsonl
 ```
 
-This builds one example per (image, category) pair, runs the model over all of them, and writes one JSONL record per example.
-Positive images produce a question for every category, including ones absent from the image, so absence questions don't come only from the negative split.
-Useful flags: `--num-pos` / `--num-neg` to subsample images, `--no-neg` to skip the negative set, `--device`, `--max-new-tokens`.
+The run builds one example per (image, category) pair and writes one JSONL record per example.
+Positive images get a question for every category, absent ones included, so absence questions don't all come from the negative split.
+`--num-pos` and `--num-neg` subsample the images and `--no-neg` skips the negative set.
+See `--help` for the rest.
 
-### Running against llama-server
+### llama-server
 
-Instead of loading a HuggingFace model in-process, the harness can act as a client to a llama.cpp server, which is how it runs on a GPU cluster.
-Launch a llama-server with a vision model (the `--mmproj` projector is required), then point the run at it:
+Start a server with a vision model (`--mmproj` is required) and point the run at it:
 
 ```
 llama-server -m model.gguf --mmproj mmproj.gguf -c 16384 -ngl 99 --port 8080
 uv run scripts/run_vhr10.py -t counting -m org/model-name -b llama-server --base-url http://localhost:8080/v1 -o results/model_counting.jsonl
 ```
 
-`-m` does not load anything here; it labels the records, and the run warns when it doesn't match the model the server reports.
-Greedy sampling and thinking-mode disabling are requested per-request, so results are deterministic for a fixed GGUF and llama.cpp build.
+Here `-m` only labels the records, and the run warns if it doesn't match what the server reports.
+Each request asks for greedy sampling with thinking off, so results are deterministic for a given GGUF and llama.cpp build.
 
 ## Container
 
@@ -55,8 +57,8 @@ docker run --rm -v ./data:/app/data -v ./results:/app/results geo-vlms \
   python scripts/run_vhr10.py -t counting -m org/model-name -b llama-server --base-url http://host:8080/v1 -o results/model_counting.jsonl
 ```
 
-The image has only the llama-server backend; it needs no GPU or torch.
-`BASE_IMAGE`, `PIP_INDEX_URL`, and `PIP_EXTRA_INDEX_URL` are build args for building from an internal base image and package mirror.
+The image has the llama-server backend only, so it needs no GPU or torch.
+The build args `BASE_IMAGE`, `PIP_INDEX_URL`, and `PIP_EXTRA_INDEX_URL` let you build from an internal base image and package mirror.
 
 ## Analyzing results
 
@@ -64,8 +66,8 @@ The image has only the llama-server backend; it needs no GPU or torch.
 uv run scripts/analyze.py -t counting -r results/qwen25_counting.jsonl -g category
 ```
 
-Parses and scores each record with the task's metrics and prints a summary table.
-`-g` groups by any record columns (e.g. `category`, `expected`) and `-m` restricts which metrics are shown.
+Scores each record and prints a summary table.
+`-g` groups by any record columns such as `category` or `expected`, and `-m` picks which metrics to show.
 
 ## Development
 
@@ -75,12 +77,13 @@ uv run ruff check .
 uv run ruff format .
 ```
 
-The pre-commit hook runs ruff, the pre-push hook also runs pytest, and CI runs all three on every push and PR.
+The pre-commit hook runs ruff, the pre-push hook also runs pytest, and CI runs all three.
 
-### Checking reproducibility
+### Reproducibility
 
-Inference is meant to be deterministic on a given machine: greedy decoding, seeded sampling, and a provenance sidecar (`<out>.meta.json`) recording the run config.
-To verify end to end, run a tiny eval twice and diff:
+Runs are meant to be deterministic on a given machine.
+Decoding is greedy, sampling is seeded, and a `<out>.meta.json` sidecar records the run config.
+To check, run a small eval twice and diff:
 
 ```
 uv run python scripts/run_vhr10.py -t counting -m HuggingFaceTB/SmolVLM2-2.2B-Instruct -b huggingface --num-pos 3 --no-neg -o /tmp/repro_a.jsonl
@@ -89,7 +92,6 @@ diff /tmp/repro_a.jsonl /tmp/repro_b.jsonl
 ```
 
 The records files should be byte-identical.
-In the meta files, everything except `command`, `args.out`, and `started_at` should match.
-In particular, `dataset.sha256` and `backend.commit_hash` should be identical.
-Worth rerunning after bumping torch or transformers.
-The same check applies to the llama-server backend against a running server.
+The meta files should match apart from `command`, `args.out`, and `started_at`, and `dataset.sha256` and `backend.commit_hash` are the fields worth looking at.
+Redo this after bumping torch or transformers.
+The same check works against a llama-server.
