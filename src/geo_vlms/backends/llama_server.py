@@ -14,13 +14,24 @@ class LlamaServerBackend:
         temperature: float = 0.0,
         seed: int = 0,
         top_k: int = 1,
+        http_client: httpx.Client | None = None,
     ):
         self.base_url = base_url
         self.temperature = temperature
         self.seed = seed
         self.top_k = top_k
 
-        self.client = OpenAI(base_url=base_url, api_key=api_key, max_retries=0)
+        # Generous read timeout since the first request can trigger slow
+        # prompt processing
+        self._http = http_client or httpx.Client(
+            timeout=httpx.Timeout(600.0, connect=5.0)
+        )
+        self.client = OpenAI(
+            base_url=base_url,
+            api_key=api_key,
+            max_retries=0,
+            http_client=self._http,
+        )
 
         # Simple probe which fails if server isn't reachable
         try:
@@ -30,7 +41,7 @@ class LlamaServerBackend:
 
         # /props lives at the server root
         root = base_url.removesuffix("/v1")
-        response = httpx.get(f"{root}/props")
+        response = self._http.get(f"{root}/props")
         response.raise_for_status()
         self._props = response.json()
 
