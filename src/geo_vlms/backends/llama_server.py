@@ -126,7 +126,7 @@ class LlamaServerBackend:
 
     def describe(self) -> dict:
         meta = {}
-        meta["kind"] = "llama-server"
+        meta["kind"] = "llama_server"
         meta["base_url"] = self.base_url
         meta["openai_version"] = openai.__version__
         meta["sampling"] = {

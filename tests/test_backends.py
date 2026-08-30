@@ -123,7 +123,7 @@ def test_describe():
     backend = build_backend([])
     meta = backend.describe()
 
-    assert meta["kind"] == "llama-server"
+    assert meta["kind"] == "llama_server"
     assert meta["base_url"] == BASE_URL
     assert meta["sampling"] == {"temperature": 0.0, "top_k": 1, "seed": 0}
     assert meta["model_path"] == "/models/fake-Q4_K_M.gguf"

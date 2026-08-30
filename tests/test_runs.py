@@ -46,14 +46,14 @@ class StubBackend:
 def prev_meta(examples) -> dict:
     """Sidecar meta matching the `examples` fixture."""
     return {
-        "args": {"model": "stub/model", "max_new_tokens": 64},
+        "args": {"model_name": "stub/model", "max_new_tokens": 64},
         "dataset": {"sha256": dataset_sha256(examples)},
         "backend": StubBackend().describe(),
     }
 
 
 def matching_args() -> dict:
-    return {"model": "stub/model", "max_new_tokens": 64}
+    return {"model_name": "stub/model", "max_new_tokens": 64}
 
 
 def test_validate_resume_matching_config_passes(prev_meta, examples):
@@ -66,14 +66,14 @@ def test_validate_resume_dataset_mismatch_raises(prev_meta):
 
 
 def test_validate_resume_model_mismatch_raises(prev_meta, examples):
-    args = matching_args() | {"model": "other/model"}
-    with pytest.raises(ValueError, match="--model=other/model"):
+    args = matching_args() | {"model_name": "other/model"}
+    with pytest.raises(ValueError, match="model_name=other/model"):
         validate_resume(prev_meta, examples, args, StubBackend())
 
 
 def test_validate_resume_max_new_tokens_mismatch_raises(prev_meta, examples):
     args = matching_args() | {"max_new_tokens": 128}
-    with pytest.raises(ValueError, match="--max-new-tokens=128"):
+    with pytest.raises(ValueError, match="max_new_tokens=128"):
         validate_resume(prev_meta, examples, args, StubBackend())
 
 
