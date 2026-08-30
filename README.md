@@ -57,14 +57,24 @@ It verifies split membership, image and annotation coverage, filenames, and cate
 ## Running an eval
 
 ```
-uv run scripts/run.py -d vhr10 -t counting -m Qwen/Qwen2.5-VL-3B-Instruct -b huggingface -o results/qwen25_counting.jsonl
+uv run scripts/run.py dataset=vhr10 task=counting backend=huggingface model_name=Qwen/Qwen2.5-VL-3B-Instruct
 ```
 
-The run builds one example per (image, category) pair and writes one JSONL record per example.
-Every image gets a question for every category, absent ones included, so absence questions don't all come from images with nothing in them.
-For VHR-10, `--num-pos` and `--num-neg` subsample the images and `--no-neg` skips the negative set.
-For DIOR, `--split` picks the official split (default `test`) and `--num-images` subsamples it.
-See `--help` for the rest.
+Config is [Hydra](https://hydra.cc): `key=value` overrides on `conf/`, validated against the schemas in `src/geo_vlms/config.py`.
+`--cfg job --resolve` prints the composed config without running.
+Records default to `results/<dataset>/<task>/<model>/<backend>/records_seed<seed>.jsonl`; override with `out=`.
+Each run writes one JSONL record per (image, category) pair, asking every category of every image so absence questions also come from images with objects.
+VHR-10 knobs: `dataset.num_pos`, `dataset.num_neg`, `dataset.no_neg=true`.
+DIOR knobs: `dataset.split` (default `test`), `dataset.num_images`.
+
+Comma-separated values with `-m` sweep the cross product, one job at a time:
+
+```
+uv run scripts/run.py -m task=counting,existence dataset=vhr10,dior backend=huggingface model_name=Qwen/Qwen2.5-VL-3B-Instruct
+```
+
+Sweeps over dataset, task, model, backend, or seed each write to their own `results/` path; for any other axis, set `out=` per run or the exists check will stop the second job.
+On a cluster, prefer one `run.py` invocation per configuration (e.g. one Slurm array task each) over `-m`, which runs jobs sequentially in a single process.
 
 ### llama-server
 
@@ -72,10 +82,11 @@ Start a server with a vision model (`--mmproj` is required) and point the run at
 
 ```
 llama-server -m model.gguf --mmproj mmproj.gguf -c 16384 -ngl 99 --port 8080
-uv run scripts/run.py -d vhr10 -t counting -m org/model-name -b llama-server --base-url http://localhost:8080/v1 -o results/model_counting.jsonl
+uv run scripts/run.py dataset=vhr10 task=counting backend=llama_server backend.base_url=http://localhost:8080/v1 model_name=org/model-name
 ```
 
-Here `-m` only labels the records, and the run warns if it doesn't match what the server reports.
+Here `model_name` only labels the records, and the run warns if it doesn't match what the server reports.
+If the server requires auth, set `GEO_VLMS_LLAMA_API_KEY`; it defaults to `unused`.
 Each request asks for greedy sampling with thinking off, so results are deterministic for a given GGUF and llama.cpp build.
 
 ## Container
@@ -83,7 +94,7 @@ Each request asks for greedy sampling with thinking off, so results are determin
 ```
 docker build -t geo-vlms .
 docker run --rm -v ./data:/app/data -v ./results:/app/results geo-vlms \
-  python scripts/run.py -d vhr10 -t counting -m org/model-name -b llama-server --base-url http://host:8080/v1 -o results/model_counting.jsonl
+  python scripts/run.py dataset=vhr10 task=counting backend=llama_server backend.base_url=http://host:8080/v1 model_name=org/model-name
 ```
 
 The image has the llama-server backend only, so it needs no GPU or torch.
@@ -115,8 +126,8 @@ Decoding is greedy, sampling is seeded, and a `<out>.meta.json` sidecar records 
 To check, run a small eval twice and diff:
 
 ```
-uv run python scripts/run.py -d vhr10 -t counting -m HuggingFaceTB/SmolVLM2-2.2B-Instruct -b huggingface --num-pos 3 --no-neg -o /tmp/repro_a.jsonl
-uv run python scripts/run.py -d vhr10 -t counting -m HuggingFaceTB/SmolVLM2-2.2B-Instruct -b huggingface --num-pos 3 --no-neg -o /tmp/repro_b.jsonl
+uv run scripts/run.py backend=huggingface model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct dataset.num_pos=3 dataset.no_neg=true out=/tmp/repro_a.jsonl
+uv run scripts/run.py backend=huggingface model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct dataset.num_pos=3 dataset.no_neg=true out=/tmp/repro_b.jsonl
 diff /tmp/repro_a.jsonl /tmp/repro_b.jsonl
 ```
 
