@@ -17,6 +17,8 @@ Add `".[hf]"` to get the huggingface backend as well.
 
 ## Data
 
+### NWPU VHR-10
+
 Unpack [NWPU VHR-10](https://gcheng-nwpu.github.io/) under `data/vhr10` (gitignored):
 
 ```
@@ -25,6 +27,32 @@ data/vhr10/
   negative_image_set/    # 150 images with none of the ten categories
   ground_truth/          # one bounding-box file per positive image
 ```
+
+### DIOR
+
+Download DIOR from the authors' [Google Drive folder](https://drive.google.com/drive/folders/1UdlgHk49iu6WpcJ5467iT-UqNPpx__CC) and unpack it under `data/dior` (gitignored):
+
+```
+data/dior/
+  JPEGImages-trainval/
+  JPEGImages-test/
+  Annotations/
+    Horizontal Bounding Boxes/
+    Oriented Bounding Boxes/
+  Main/
+    train.txt
+    val.txt
+    test.txt
+```
+
+Prepare the dataset once by converting the horizontal XML annotations into the count table used by the DIOR loader:
+
+```
+uv run scripts/prepare_dior.py --data-dir data/dior
+```
+
+This writes `data/dior/counts.csv` with one row per image and category.
+It verifies split membership, image and annotation coverage, filenames, and category names without modifying the downloaded files.
 
 ## Running an eval
 
