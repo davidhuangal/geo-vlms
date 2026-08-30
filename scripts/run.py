@@ -6,7 +6,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from geo_vlms.backends import Backend
-from geo_vlms.datasets.vhr10 import build_counting_dataset, build_existence_dataset
+from geo_vlms.datasets import dior, vhr10
+from geo_vlms.example import Example
 from geo_vlms.inference import run_inference
 from geo_vlms.provenance import collect_provenance
 from geo_vlms.runs import (
@@ -17,9 +18,13 @@ from geo_vlms.runs import (
 )
 
 DATASET_BUILDERS = {
-    "counting": build_counting_dataset,
-    "existence": build_existence_dataset,
+    ("vhr10", "counting"): vhr10.build_counting_dataset,
+    ("vhr10", "existence"): vhr10.build_existence_dataset,
+    ("dior", "counting"): dior.build_counting_dataset,
+    ("dior", "existence"): dior.build_existence_dataset,
 }
+TASKS = ("counting", "existence")
+DATASETS = ("vhr10", "dior")
 
 
 def build_backend(
@@ -52,17 +57,45 @@ def build_backend(
     raise ValueError(f"Unknown backend: {backend_type}")
 
 
+def build_examples(args: argparse.Namespace) -> list[Example]:
+    build_dataset = DATASET_BUILDERS[(args.dataset, args.task)]
+    data_dir = Path(args.data_dir)
+    if args.dataset == "vhr10":
+        return build_dataset(
+            pos_dir=data_dir / "positive_image_set",
+            gt_dir=data_dir / "ground_truth",
+            neg_dir=None if args.no_neg else data_dir / "negative_image_set",
+            num_pos_images=args.num_pos,
+            num_neg_images=args.num_neg,
+            seed=args.seed,
+        )
+    return build_dataset(
+        data_dir=data_dir,
+        split=args.split,
+        num_images=args.num_images,
+        seed=args.seed,
+    )
+
+
 def parse_args() -> argparse.Namespace:
-    """Parse CLI for a VHR10 inference run."""
+    """Parse CLI for an inference run."""
     parser = argparse.ArgumentParser(
-        description="Run a VLM over a VHR10 task dataset and write records.",
+        description="Run a VLM over a task dataset and write records.",
+    )
+    parser.add_argument(
+        "-d",
+        "--dataset",
+        type=str,
+        required=True,
+        choices=DATASETS,
+        help="Dataset to evaluate on.",
     )
     parser.add_argument(
         "-t",
         "--task",
         type=str,
         required=True,
-        choices=DATASET_BUILDERS,
+        choices=TASKS,
         help="Target task.",
     )
     parser.add_argument(
@@ -101,26 +134,38 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--data-dir",
         type=str,
-        default="data/vhr10",
-        help="VHR10 root containing positive_image_set/, ground_truth/, "
-        "and negative_image_set/.",
+        default=None,
+        help="Dataset root. Default: data/<dataset>",
     )
     parser.add_argument(
         "--num-pos",
         type=int,
         default=None,
-        help="Number of positive images to sample. Default: all.",
+        help="vhr10: number of positive images to sample. Default: all.",
     )
     parser.add_argument(
         "--num-neg",
         type=int,
         default=None,
-        help="Number of negative images to sample. Default: all.",
+        help="vhr10: number of negative images to sample. Default: all.",
     )
     parser.add_argument(
         "--no-neg",
         action="store_true",
-        help="Skip the negative image set entirely.",
+        help="vhr10: skip the negative image set entirely.",
+    )
+    parser.add_argument(
+        "--split",
+        type=str,
+        default=None,
+        choices=dior.SPLITS,
+        help="dior: official split to evaluate. Default: test",
+    )
+    parser.add_argument(
+        "--num-images",
+        type=int,
+        default=None,
+        help="dior: number of images to sample from the split. Default: all.",
     )
     parser.add_argument("--seed", type=int, default=0, help="Sampling seed.")
     parser.add_argument(
@@ -143,6 +188,16 @@ def parse_args() -> argparse.Namespace:
     )
     args = parser.parse_args()
 
+    if args.data_dir is None:
+        args.data_dir = f"data/{args.dataset}"
+    vhr10_only = args.num_pos is not None or args.num_neg is not None or args.no_neg
+    dior_only = args.split is not None or args.num_images is not None
+    if args.dataset != "vhr10" and vhr10_only:
+        parser.error("--num-pos, --num-neg, and --no-neg only apply to --dataset vhr10")
+    if args.dataset != "dior" and dior_only:
+        parser.error("--split and --num-images only apply to --dataset dior")
+    if args.dataset == "dior" and args.split is None:
+        args.split = "test"
     if args.backend == "llama-server" and args.base_url is None:
         parser.error("--backend llama-server requires --base-url")
     if args.backend != "llama-server" and args.base_url is not None:
@@ -155,9 +210,7 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
-    build_dataset = DATASET_BUILDERS[args.task]
 
-    data_dir = Path(args.data_dir)
     out_path = Path(args.out)
     provenance_out = out_path.with_suffix(".meta.json")
     if (not args.overwrite and not args.resume) and out_path.exists():
@@ -177,16 +230,9 @@ def main():
         )
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    examples = build_dataset(
-        pos_dir=data_dir / "positive_image_set",
-        gt_dir=data_dir / "ground_truth",
-        neg_dir=None if args.no_neg else data_dir / "negative_image_set",
-        num_pos_images=args.num_pos,
-        num_neg_images=args.num_neg,
-        seed=args.seed,
-    )
+    examples = build_examples(args)
     print(
-        f"Built {len(examples)} {args.task} examples. "
+        f"Built {len(examples)} {args.dataset} {args.task} examples. "
         f"Using {args.model} via {args.backend}."
     )
 
