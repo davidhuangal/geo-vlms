@@ -50,7 +50,7 @@ def generate_examples(n: int) -> list[Example]:
 def sample_run():
     """Fixture to create a dummy inference run."""
     command = (
-        "scripts/run_vhr10.py -t counting -m Qwen/Qwen2.5-VL-3B-Instruct "
+        "scripts/run.py -d vhr10 -t counting -m Qwen/Qwen2.5-VL-3B-Instruct "
         "-b huggingface -o results/dummy.jsonl --data-dir data/vhr10 "
         "--num-pos 1 --num-neg 1 --seed 0 --device mps"
     )

@@ -80,7 +80,11 @@ def build_counting_dataset(
                     image_path=str(image_path),
                     prompt=task.format_prompt(category_name=category_name),
                     expected=count,
-                    metadata={"split": "positive", "category": category_name},
+                    metadata={
+                        "dataset": "vhr10",
+                        "split": "positive",
+                        "category": category_name,
+                    },
                 )
             )
 
@@ -94,7 +98,11 @@ def build_counting_dataset(
                         image_path=str(image_path),
                         prompt=task.format_prompt(category_name=category_name),
                         expected=0,
-                        metadata={"split": "negative", "category": category_name},
+                        metadata={
+                            "dataset": "vhr10",
+                            "split": "negative",
+                            "category": category_name,
+                        },
                     )
                 )
 
@@ -121,7 +129,11 @@ def build_existence_dataset(
                     image_path=str(image_path),
                     prompt=task.format_prompt(category_name=category_name),
                     expected=count >= 1,
-                    metadata={"split": "positive", "category": category_name},
+                    metadata={
+                        "dataset": "vhr10",
+                        "split": "positive",
+                        "category": category_name,
+                    },
                 )
             )
 
@@ -135,7 +147,11 @@ def build_existence_dataset(
                         image_path=str(image_path),
                         prompt=task.format_prompt(category_name=category_name),
                         expected=False,
-                        metadata={"split": "negative", "category": category_name},
+                        metadata={
+                            "dataset": "vhr10",
+                            "split": "negative",
+                            "category": category_name,
+                        },
                     )
                 )
 

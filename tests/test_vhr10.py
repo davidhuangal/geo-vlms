@@ -206,11 +206,17 @@ def test_counting_metadata(vhr10_dirs):
     by_id = {e.id: e for e in dataset}
 
     assert by_id["pos/001:airplane"].metadata == {
+        "dataset": "vhr10",
         "split": "positive",
         "category": "airplane",
     }
-    assert by_id["pos/001:ship"].metadata == {"split": "positive", "category": "ship"}
+    assert by_id["pos/001:ship"].metadata == {
+        "dataset": "vhr10",
+        "split": "positive",
+        "category": "ship",
+    }
     assert by_id["neg/900:vehicle"].metadata == {
+        "dataset": "vhr10",
         "split": "negative",
         "category": "vehicle",
     }
