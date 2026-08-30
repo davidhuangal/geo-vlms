@@ -1,0 +1,14 @@
+defaults:
+  - base_config
+  - dataset: vhr10
+  - backend: llama_server
+  - override hydra/job_logging: disabled
+  - override hydra/hydra_logging: disabled
+  - _self_
+
+hydra:
+  job:
+    chdir: false
+  output_subdir: null
+  run:
+    dir: .

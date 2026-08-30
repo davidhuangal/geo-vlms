@@ -22,6 +22,8 @@ htmlcov/
 results/
 data/
 scratch/
+multirun/
+outputs/
 
 # Personal backlog
 TODO.md

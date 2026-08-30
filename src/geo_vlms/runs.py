@@ -21,7 +21,7 @@ def validate_resume(
     Args:
         prev_meta: The original run's parsed provenance sidecar.
         examples: The full example list built from the current args.
-        args: The resolved CLI arguments of the resuming run.
+        args: The resolved config of the resuming run.
         backend: The backend being used for this resumed run.
 
     Raises:
@@ -30,12 +30,12 @@ def validate_resume(
     if dataset_sha256(examples) != prev_meta["dataset"]["sha256"]:
         raise ValueError(
             "Dataset does not match the original run; resume with the "
-            "same --task, --data-dir, --seed, and sampling flags"
+            "same task, data_dir, seed, and sampling options"
         )
-    for key in ("model", "max_new_tokens"):
+    for key in ("model_name", "max_new_tokens"):
         if args[key] != prev_meta["args"][key]:
             raise ValueError(
-                f"--{key.replace('_', '-')}={args[key]} does not "
+                f"{key}={args[key]} does not "
                 f"match the original run's {prev_meta['args'][key]}"
             )
 
