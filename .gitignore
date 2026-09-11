@@ -24,6 +24,7 @@ data/
 scratch/
 multirun/
 outputs/
+projects/
 
 # Personal backlog
 TODO.md
