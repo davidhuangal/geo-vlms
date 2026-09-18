@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from geo_vlms.backends.base import Generation
 from geo_vlms.example import Example
 from geo_vlms.provenance import dataset_sha256
 from geo_vlms.runs import (
@@ -35,8 +36,8 @@ class StubBackend:
     def __init__(self, description: dict | None = None):
         self._description = description or {"kind": "stub", "name": "stub/model"}
 
-    def generate(self, prompt, image_paths, max_new_tokens):
-        return "canned response"
+    def generate(self, prompt, images, max_new_tokens, top_logprobs=None):
+        return Generation(text="canned response")
 
     def describe(self):
         return dict(self._description)

@@ -6,6 +6,7 @@ import subprocess
 
 import pytest
 
+from geo_vlms.backends.base import Generation
 from geo_vlms.example import Example
 from geo_vlms.provenance import collect_provenance, git_info
 
@@ -20,8 +21,8 @@ STUB_DESCRIPTION = {
 class StubBackend:
     """Canned backend to avoid an expensive model load."""
 
-    def generate(self, prompt, image_paths, max_new_tokens):
-        return "canned response"
+    def generate(self, prompt, images, max_new_tokens, top_logprobs=None):
+        return Generation(text="canned response")
 
     def describe(self):
         return dict(STUB_DESCRIPTION)
