@@ -1,6 +1,11 @@
+import io
+
 import torch
 import transformers
+from PIL import Image
 from transformers import AutoModelForImageTextToText, AutoProcessor
+
+from .base import Generation
 
 
 class HuggingFaceBackend:
@@ -34,23 +39,27 @@ class HuggingFaceBackend:
         )
 
     def _build_messages(
-        self, prompt: str, image_paths: list[str] | None = None
+        self, prompt: str, images: list[str | bytes] | None = None
     ) -> list:
         """
         Generate the messages format to send to the VLM.
 
         Args:
             prompt: The text prompt to send to the model.
-            image_paths: The paths to the images to show to the VLM.
+            images: The paths to images or image bytes to send to the model.
 
         Returns:
             The messages list in the appropriate format.
         """
         # Build the content of the message
         user_content = []
-        if image_paths is not None:
-            for image_path in image_paths:
-                user_content.append({"type": "image", "path": str(image_path)})
+        if images is not None:
+            for image in images:
+                if isinstance(image, bytes):
+                    pil_image = Image.open(io.BytesIO(image))
+                    user_content.append({"type": "image", "image": pil_image})
+                else:
+                    user_content.append({"type": "image", "path": str(image)})
         user_content.append({"type": "text", "text": prompt})
 
         # Build the message list
@@ -61,22 +70,27 @@ class HuggingFaceBackend:
     def generate(
         self,
         prompt: str,
-        image_paths: list[str] | None,
+        images: list[str | bytes] | None,
         max_new_tokens: int = 64,
-    ) -> str:
+        top_logprobs: int | None = None,
+    ) -> Generation:
         """
         Prompt a VLM with text and images.
 
         Args:
             prompt: The user text prompt.
-            image_paths: The paths to the images to show to the VLM.
+            images: The paths to images or image bytes to send to the model.
             max_new_tokens: Sets the max tokens a model is allowed to output.
+            top_logprobs: Unsupported by this backend; must be None.
 
         Returns:
-            The generated text from the model.
+            The generated text and token counts.
         """
+        if top_logprobs is not None:
+            raise NotImplementedError("HuggingFaceBackend does not return logprobs.")
+
         # Convert prompt / images into the expected messages format
-        messages = self._build_messages(prompt=prompt, image_paths=image_paths)
+        messages = self._build_messages(prompt=prompt, images=images)
 
         # Convert the messages into the tensors the VLM expects, on the model's
         # device. Only floating-point tensors are cast, so input_ids stays integral.
@@ -104,7 +118,11 @@ class HuggingFaceBackend:
         # Decode text from the raw tokens
         generated_text = self.processor.batch_decode(new_ids, skip_special_tokens=True)
 
-        return generated_text[0]
+        return Generation(
+            text=generated_text[0],
+            prompt_tokens=prompt_len,
+            completion_tokens=new_ids.shape[-1],
+        )
 
     def describe(self) -> dict:
         meta = {}

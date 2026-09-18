@@ -1,3 +1,4 @@
+import io
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -5,6 +6,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import transformers
+from PIL import Image
 from transformers.feature_extraction_utils import BatchFeature
 
 from geo_vlms.backends.huggingface import HuggingFaceBackend
@@ -80,9 +82,9 @@ def test_initialization(hf_mocks, device, bf16_supported, dtype, attention):
         hf_mocks.bf16_supported.assert_not_called()
 
 
-@pytest.mark.parametrize("image_paths", [None, []])
-def test_messages_without_images(backend, image_paths):
-    assert backend._build_messages("text only", image_paths) == [
+@pytest.mark.parametrize("images", [None, []])
+def test_messages_without_images(backend, images):
+    assert backend._build_messages("text only", images) == [
         {"role": "user", "content": [{"type": "text", "text": "text only"}]}
     ]
 
@@ -100,29 +102,49 @@ def test_messages_with_images(backend):
     ]
 
 
+def test_messages_with_image_bytes(backend):
+    buf = io.BytesIO()
+    Image.new("RGB", (2, 2)).save(buf, format="PNG")
+
+    (message,) = backend._build_messages("q", [buf.getvalue()])
+    image_part, text_part = message["content"]
+
+    assert image_part["type"] == "image"
+    assert isinstance(image_part["image"], Image.Image)
+    assert image_part["image"].size == (2, 2)
+    assert text_part == {"type": "text", "text": "q"}
+
+
+def test_generate_logprobs_raises(backend):
+    with pytest.raises(NotImplementedError):
+        backend.generate("q", None, top_logprobs=2)
+
+
 @pytest.mark.parametrize(
-    ("image_paths", "token_options", "new_tokens", "expected_text"),
+    ("images", "token_options", "new_tokens", "expected_text"),
     [
         (["a.jpg"], {"max_new_tokens": 16}, [20, 21], "two planes"),
         (None, {}, [20], "hello"),
         ([], {}, [], ""),
     ],
 )
-def test_generate(
-    backend, hf_mocks, image_paths, token_options, new_tokens, expected_text
-):
+def test_generate(backend, hf_mocks, images, token_options, new_tokens, expected_text):
     input_ids = torch.tensor([[10, 11, 12]])
     attention_mask = torch.ones_like(input_ids)
     inputs = BatchFeature({"input_ids": input_ids, "attention_mask": attention_mask})
-    if image_paths:
+    if images:
         inputs["pixel_values"] = torch.ones((1, 3, 2, 2), dtype=torch.float32)
     hf_mocks.processor.apply_chat_template.return_value = inputs
     hf_mocks.model.generate.return_value = torch.tensor([[10, 11, 12, *new_tokens]])
     hf_mocks.processor.batch_decode.return_value = [expected_text]
 
-    assert backend.generate("q", image_paths, **token_options) == expected_text
+    output = backend.generate("q", images, **token_options)
+    assert output.text == expected_text
+    assert output.tokens is None
+    assert output.prompt_tokens == 3
+    assert output.completion_tokens == len(new_tokens)
 
-    content = [{"type": "image", "path": path} for path in image_paths or []]
+    content = [{"type": "image", "path": path} for path in images or []]
     content.append({"type": "text", "text": "q"})
     hf_mocks.processor.apply_chat_template.assert_called_once_with(
         [{"role": "user", "content": content}],
@@ -141,7 +163,7 @@ def test_generate(
     assert kwargs["max_new_tokens"] == token_options.get("max_new_tokens", 64)
     torch.testing.assert_close(kwargs["input_ids"], input_ids)
     torch.testing.assert_close(kwargs["attention_mask"], attention_mask)
-    if image_paths:
+    if images:
         # Real BatchFeature conversion must cast pixels while keeping IDs integral.
         torch.testing.assert_close(
             kwargs["pixel_values"],
