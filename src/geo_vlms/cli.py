@@ -1,16 +1,16 @@
 import json
-import os
 import shlex
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
 import hydra
+from hydra.core.hydra_config import HydraConfig
+from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from geo_vlms.backends import Backend
 from geo_vlms.config import register_configs
-from geo_vlms.datasets import dior, vhr10
 from geo_vlms.example import Example
 from geo_vlms.inference import run_inference
 from geo_vlms.provenance import collect_provenance
@@ -21,84 +21,25 @@ from geo_vlms.runs import (
     finished_ids,
     note_resume,
 )
+from geo_vlms.tasks import TASKS
 
 register_configs()
 
-DATASET_BUILDERS = {
-    ("vhr10", "counting"): vhr10.build_counting_dataset,
-    ("vhr10", "existence"): vhr10.build_existence_dataset,
-    ("dior", "counting"): dior.build_counting_dataset,
-    ("dior", "existence"): dior.build_existence_dataset,
-}
 
-
-def build_backend(
-    cfg: DictConfig,
-) -> Backend:
-    if cfg.backend.name == "huggingface":
-        import torch
-
-        from geo_vlms.backends.huggingface import HuggingFaceBackend
-
-        device = cfg.backend.device
-        if device is None:
-            if torch.cuda.is_available():
-                device = "cuda"
-            elif torch.backends.mps.is_available():
-                device = "mps"
-            else:
-                device = "cpu"
-        return HuggingFaceBackend(model_name=cfg.model_name, device=device)
-    if cfg.backend.name == "llama_server":
-        from geo_vlms.backends.llama_server import LlamaServerBackend
-
-        backend = LlamaServerBackend(
-            base_url=cfg.backend.base_url,
-            api_key=os.environ.get("GEO_VLMS_LLAMA_API_KEY", "unused"),
-            temperature=cfg.backend.temperature,
-            top_k=cfg.backend.top_k,
-        )
-        alias = backend.describe().get("model_alias")
-        if alias is not None and alias != cfg.model_name:
-            print(
-                f"Warning: --model {cfg.model_name} does not match the server's "
-                f"model {alias}; records will be labeled {cfg.model_name}."
-            )
-        return backend
-    raise ValueError(f"Unknown backend: {cfg.backend.name}")
+def build_backend(cfg: DictConfig) -> Backend:
+    """Construct the backend named by `cfg.backend._target_`."""
+    return instantiate(cfg.backend)
 
 
 def build_examples(cfg: DictConfig) -> list[Example]:
-    build_dataset = DATASET_BUILDERS[(cfg.dataset.name, cfg.task)]
-    data_dir = Path(cfg.dataset.data_dir)
-
-    if cfg.dataset.name == "vhr10":
-        return build_dataset(
-            pos_dir=data_dir / "positive_image_set",
-            gt_dir=data_dir / "ground_truth",
-            neg_dir=None if cfg.dataset.no_neg else data_dir / "negative_image_set",
-            num_pos_images=cfg.dataset.num_pos,
-            num_neg_images=cfg.dataset.num_neg,
-            seed=cfg.seed,
-        )
-
-    return build_dataset(
-        data_dir=data_dir,
-        split=cfg.dataset.split,
-        num_images=cfg.dataset.num_images,
-        categories=cfg.dataset.categories,
-        seed=cfg.seed,
-    )
+    """Call the dataset builder named by `cfg.dataset._target_`."""
+    if cfg.task not in TASKS:
+        raise ValueError(f"Unknown task {cfg.task}; tasks: {', '.join(TASKS)}")
+    return instantiate(cfg.dataset, task=TASKS[cfg.task](), seed=cfg.seed)
 
 
-@hydra.main(config_path="../conf", config_name="config", version_base="1.3")
+@hydra.main(config_path="conf", config_name="config", version_base="1.3")
 def main(cfg: DictConfig):
-    if (cfg.dataset.name, cfg.task) not in DATASET_BUILDERS:
-        raise ValueError(
-            f"No builder for dataset={cfg.dataset.name}, task={cfg.task}; "
-            f"tasks: counting, existence"
-        )
-
     out_path = Path(cfg.out)
     provenance_out = out_path.with_suffix(".meta.json")
 
@@ -123,9 +64,10 @@ def main(cfg: DictConfig):
 
     # ----- Dataset Creation -----
     examples = build_examples(cfg=cfg)
+    choices = HydraConfig.get().runtime.choices
     print(
-        f"Built {len(examples)} {cfg.dataset.name} {cfg.task} examples. "
-        f"Using {cfg.model_name} via {cfg.backend.name}."
+        f"Built {len(examples)} {choices['dataset']} {cfg.task} examples. "
+        f"Using {cfg.model_name} via {choices['backend']}."
     )
 
     # ----- Backend -----

@@ -6,9 +6,11 @@ import pytest
 from geo_vlms.datasets.vhr10 import (
     CLASS_MAP,
     build_counting_dataset,
+    build_dataset,
     build_existence_dataset,
     parse_annotation,
 )
+from geo_vlms.tasks import Counting, Existence
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "vhr10"
 
@@ -75,6 +77,23 @@ def test_build_counting_dataset(vhr10_dirs):
 
     # Test the negative image
     assert all(e.expected == 0 for e in dataset if e.id.startswith("neg/"))
+
+
+def test_build_dataset_dispatches_on_task(vhr10_dirs, tmp_path):
+    counting = build_dataset(tmp_path, Counting())
+    existence = build_dataset(tmp_path, Existence(), no_neg=True)
+
+    assert counting == build_counting_dataset(
+        pos_dir=vhr10_dirs.pos, gt_dir=vhr10_dirs.gt, neg_dir=vhr10_dirs.neg
+    )
+    assert existence == build_existence_dataset(
+        pos_dir=vhr10_dirs.pos, gt_dir=vhr10_dirs.gt, neg_dir=None
+    )
+
+
+def test_build_dataset_rejects_unknown_task(tmp_path):
+    with pytest.raises(ValueError, match="Unsupported task"):
+        build_dataset(tmp_path, object())
 
 
 def test_build_existence_dataset(vhr10_dirs):

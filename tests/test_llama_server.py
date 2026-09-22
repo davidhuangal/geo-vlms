@@ -49,7 +49,9 @@ LOGPROBS_RESPONSE["choices"][0]["logprobs"] = {
 }
 
 
-def build_backend(requests, props=PROPS, chat_response=CHAT_RESPONSE, chat_status=200):
+def build_backend(
+    requests, props=PROPS, chat_response=CHAT_RESPONSE, chat_status=200, **kwargs
+):
     """Backend wired to a fake server; captures every request in `requests`."""
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -63,7 +65,33 @@ def build_backend(requests, props=PROPS, chat_response=CHAT_RESPONSE, chat_statu
         return httpx.Response(404)
 
     http_client = httpx.Client(transport=httpx.MockTransport(handler))
-    return LlamaServerBackend(base_url=BASE_URL, http_client=http_client)
+    return LlamaServerBackend(base_url=BASE_URL, http_client=http_client, **kwargs)
+
+
+def test_api_key_from_env(monkeypatch):
+    monkeypatch.setenv("GEO_VLMS_LLAMA_API_KEY", "secret")
+    requests = []
+    build_backend(requests)
+
+    assert requests[0].headers["authorization"] == "Bearer secret"
+
+
+def test_api_key_defaults_to_unused(monkeypatch):
+    monkeypatch.delenv("GEO_VLMS_LLAMA_API_KEY", raising=False)
+    requests = []
+    build_backend(requests)
+
+    assert requests[0].headers["authorization"] == "Bearer unused"
+
+
+def test_model_name_mismatch_warns(capsys):
+    build_backend([], model_name="org/other:Q8_0")
+    assert (
+        "does not match the server's model org/fake:Q4_K_M" in capsys.readouterr().out
+    )
+
+    build_backend([], model_name="org/fake:Q4_K_M")
+    assert capsys.readouterr().out == ""
 
 
 def test_generate_request_body(tmp_path):

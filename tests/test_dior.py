@@ -7,9 +7,11 @@ import pytest
 from geo_vlms.datasets.dior import (
     CATEGORIES,
     build_counting_dataset,
+    build_dataset,
     build_existence_dataset,
     load_prepared,
 )
+from geo_vlms.tasks import Counting, Existence
 
 REAL_DATA_DIR = Path(__file__).parents[1] / "data" / "dior"
 PREPARE_SCRIPT = Path(__file__).parents[1] / "scripts" / "prepare_dior.py"
@@ -103,6 +105,20 @@ def test_build_counting_dataset(dior_dir):
     assert by_category["ship"].expected == 2
     assert by_category["vehicle"].expected == 0
     assert by_category["golf field"].metadata["raw_category"] == "golffield"
+
+
+def test_build_dataset_dispatches_on_task(dior_dir):
+    assert build_dataset(dior_dir, Counting(), split="train") == (
+        build_counting_dataset(dior_dir, "train")
+    )
+    assert build_dataset(dior_dir, Existence(), split="train") == (
+        build_existence_dataset(dior_dir, "train")
+    )
+
+
+def test_build_dataset_rejects_unknown_task(dior_dir):
+    with pytest.raises(ValueError, match="Unsupported task"):
+        build_dataset(dior_dir, object(), split="train")
 
 
 def test_build_existence_dataset(dior_dir):

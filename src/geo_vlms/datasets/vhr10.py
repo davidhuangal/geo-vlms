@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from geo_vlms.example import Example
-from geo_vlms.tasks import Counting, Existence
+from geo_vlms.tasks import Counting, Existence, Task
 
 CLASS_MAP = {
     1: "airplane",
@@ -156,3 +156,29 @@ def build_existence_dataset(
                 )
 
     return examples
+
+
+def build_dataset(
+    data_dir: os.PathLike,
+    task: Task,
+    seed: int = 0,
+    num_pos: int | None = None,
+    num_neg: int | None = None,
+    no_neg: bool = False,
+) -> list[Example]:
+    """Build VHR-10 examples for `task` from the unpacked dataset layout."""
+    data_dir = Path(data_dir)
+    if isinstance(task, Counting):
+        build = build_counting_dataset
+    elif isinstance(task, Existence):
+        build = build_existence_dataset
+    else:
+        raise ValueError(f"Unsupported task for vhr10: {type(task).__name__}")
+    return build(
+        pos_dir=data_dir / "positive_image_set",
+        gt_dir=data_dir / "ground_truth",
+        neg_dir=None if no_neg else data_dir / "negative_image_set",
+        num_pos_images=num_pos,
+        num_neg_images=num_neg,
+        seed=seed,
+    )

@@ -8,16 +8,27 @@ from transformers import AutoModelForImageTextToText, AutoProcessor
 from .base import Generation
 
 
+def _default_device() -> str:
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 class HuggingFaceBackend:
-    def __init__(self, model_name: str, device: str) -> None:
+    def __init__(self, model_name: str, device: str | None = None) -> None:
         """
         HuggingFace-powered backend.
 
         Args:
             model_name: The `organization/model-name` for the desired model.
-            device: The desired PyTorch device. E.g., 'cuda', 'mps', 'cpu', etc.
+            device: The desired PyTorch device, e.g. 'cuda', 'mps', 'cpu'.
+                None picks the first available of cuda, mps, cpu.
         """
         self.model_name = model_name
+        if device is None:
+            device = _default_device()
 
         # Pick dtype based on hardware support
         if "cuda" in device and not torch.cuda.is_bf16_supported():

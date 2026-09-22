@@ -9,8 +9,8 @@ class Config:
     dataset: Any
     backend: Any
     out: str = (
-        "results/${dataset.name}/${task}/${model_name}/${backend.name}"
-        "/records_seed${seed}.jsonl"
+        "results/${hydra:runtime.choices.dataset}/${task}/${model_name}"
+        "/${hydra:runtime.choices.backend}/records_seed${seed}.jsonl"
     )
     model_name: str = "unsloth/gemma-4-E2B-it-GGUF:Q4_K_M"
     task: str = "counting"
@@ -23,7 +23,7 @@ class Config:
 
 @dataclass
 class VHR10Config:
-    name: str = "vhr10"
+    _target_: str = "geo_vlms.datasets.vhr10.build_dataset"
     data_dir: str = "data/vhr10"
     num_pos: int | None = None
     num_neg: int | None = None
@@ -32,7 +32,7 @@ class VHR10Config:
 
 @dataclass
 class DIORConfig:
-    name: str = "dior"
+    _target_: str = "geo_vlms.datasets.dior.build_dataset"
     data_dir: str = "data/dior"
     split: str = "test"
     num_images: int | None = None
@@ -41,14 +41,16 @@ class DIORConfig:
 
 @dataclass
 class HuggingFaceConfig:
-    name: str = "huggingface"
+    _target_: str = "geo_vlms.backends.huggingface.HuggingFaceBackend"
+    model_name: str = "${model_name}"
     device: str | None = None
 
 
 @dataclass
 class LlamaServerConfig:
     base_url: str
-    name: str = "llama_server"
+    _target_: str = "geo_vlms.backends.llama_server.LlamaServerBackend"
+    model_name: str = "${model_name}"
     temperature: float = 0.0
     top_k: int = 1
 
