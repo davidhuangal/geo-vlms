@@ -111,6 +111,31 @@ def test_provenance_keys(provenance):
         assert {"sha", "dirty"} == set(git_meta)
 
 
+def test_provenance_without_examples_omits_dataset(sample_run):
+    command, args, started_at, _ = sample_run
+    meta = collect_provenance(
+        command=command, args=args, started_at=started_at, backend=StubBackend()
+    )
+
+    assert "dataset" not in meta
+
+
+def test_provenance_extra_merged_at_top_level(sample_run):
+    command, args, started_at, examples = sample_run
+    meta = collect_provenance(
+        command=command,
+        args=args,
+        started_at=started_at,
+        backend=StubBackend(),
+        examples=examples,
+        extra={"prompt_id": "yesno", "variant": "boxed"},
+    )
+
+    assert meta["prompt_id"] == "yesno"
+    assert meta["variant"] == "boxed"
+    assert "dataset" in meta
+
+
 def test_provenance_backend(provenance):
     # The backend section is the backend's self-description, verbatim
     assert provenance["backend"] == STUB_DESCRIPTION

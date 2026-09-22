@@ -6,10 +6,12 @@ from geo_vlms.backends.base import Generation
 from geo_vlms.example import Example
 from geo_vlms.provenance import dataset_sha256
 from geo_vlms.runs import (
+    RecordWriter,
+    check_backend,
+    check_keys,
     drop_truncated_tail,
     finished_ids,
     note_resume,
-    validate_resume,
 )
 
 
@@ -53,44 +55,51 @@ def prev_meta(examples) -> dict:
     }
 
 
-def matching_args() -> dict:
-    return {"model_name": "stub/model", "max_new_tokens": 64}
+RESUME_KEYS = ["args.model_name", "args.max_new_tokens", "dataset.sha256"]
 
 
-def test_validate_resume_matching_config_passes(prev_meta, examples):
-    validate_resume(prev_meta, examples, matching_args(), StubBackend())
+def test_check_keys_matching_passes(prev_meta):
+    check_keys(prev_meta, json.loads(json.dumps(prev_meta)), RESUME_KEYS)
 
 
-def test_validate_resume_dataset_mismatch_raises(prev_meta):
-    with pytest.raises(ValueError, match="Dataset does not match"):
-        validate_resume(prev_meta, make_examples(2), matching_args(), StubBackend())
+def test_check_keys_dataset_mismatch_raises(prev_meta):
+    curr = json.loads(json.dumps(prev_meta))
+    curr["dataset"]["sha256"] = dataset_sha256(make_examples(2))
+    with pytest.raises(ValueError, match=r"dataset\.sha256"):
+        check_keys(prev_meta, curr, RESUME_KEYS)
 
 
-def test_validate_resume_model_mismatch_raises(prev_meta, examples):
-    args = matching_args() | {"model_name": "other/model"}
-    with pytest.raises(ValueError, match="model_name=other/model"):
-        validate_resume(prev_meta, examples, args, StubBackend())
+def test_check_keys_model_mismatch_raises(prev_meta):
+    curr = json.loads(json.dumps(prev_meta))
+    curr["args"]["model_name"] = "other/model"
+    with pytest.raises(ValueError, match=r"args\.model_name='other/model'"):
+        check_keys(prev_meta, curr, RESUME_KEYS)
 
 
-def test_validate_resume_max_new_tokens_mismatch_raises(prev_meta, examples):
-    args = matching_args() | {"max_new_tokens": 128}
-    with pytest.raises(ValueError, match="max_new_tokens=128"):
-        validate_resume(prev_meta, examples, args, StubBackend())
+def test_check_keys_missing_key_raises(prev_meta):
+    curr = json.loads(json.dumps(prev_meta))
+    del curr["args"]["max_new_tokens"]
+    with pytest.raises(ValueError, match="<missing>"):
+        check_keys(prev_meta, curr, RESUME_KEYS)
 
 
-def test_validate_resume_backend_mismatch_raises(prev_meta, examples):
-    other = StubBackend({"kind": "stub", "name": "other/backend"})
+def test_check_backend_mismatch_raises(prev_meta):
+    curr = {"backend": {"kind": "stub", "name": "other/backend"}}
     with pytest.raises(ValueError, match="Backend does not match"):
-        validate_resume(prev_meta, examples, matching_args(), other)
+        check_backend(prev_meta, curr)
 
 
-def test_validate_resume_ignores_base_url(prev_meta, examples):
+def test_check_backend_ignores_base_url(prev_meta):
     # Same backend reached through a different address should still resume
     prev_meta["backend"]["base_url"] = "http://old-tunnel:8080/v1"
-    moved = StubBackend(
-        {"kind": "stub", "name": "stub/model", "base_url": "http://new-tunnel:9090/v1"}
-    )
-    validate_resume(prev_meta, examples, matching_args(), moved)
+    curr = {
+        "backend": {
+            "kind": "stub",
+            "name": "stub/model",
+            "base_url": "http://new-tunnel:9090/v1",
+        }
+    }
+    check_backend(prev_meta, curr)
 
 
 def test_drop_truncated_tail_clean_file_untouched(tmp_path):
@@ -147,6 +156,33 @@ def test_finished_ids_empty_file_gives_empty_set(tmp_path):
     out.write_text("")
 
     assert finished_ids(out) == set()
+
+
+def test_finished_ids_custom_key(tmp_path):
+    out = tmp_path / "records.jsonl"
+    records = [{"det_id": "x"}, {"det_id": "y"}]
+    out.write_text("".join(json.dumps(r) + "\n" for r in records))
+
+    assert finished_ids(out, key="det_id") == {"x", "y"}
+
+
+def test_record_writer_writes_and_appends(tmp_path):
+    out = tmp_path / "records.jsonl"
+    with RecordWriter(out) as writer:
+        writer.write({"id": "a"})
+        # Flushed before the context closes
+        assert out.read_text() == '{"id": "a"}\n'
+        writer.write({"id": "b"})
+
+    with RecordWriter(out, append=True) as writer:
+        writer.write({"id": "c"})
+
+    assert out.read_text() == '{"id": "a"}\n{"id": "b"}\n{"id": "c"}\n'
+
+    with RecordWriter(out) as writer:
+        writer.write({"id": "d"})
+
+    assert out.read_text() == '{"id": "d"}\n'
 
 
 def test_note_resume_appends_first_entry():

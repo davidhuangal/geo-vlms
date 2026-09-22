@@ -1,4 +1,3 @@
-import json
 import os
 from dataclasses import asdict
 
@@ -6,6 +5,7 @@ from tqdm import tqdm
 
 from geo_vlms.backends import Backend
 from geo_vlms.example import Example
+from geo_vlms.runs import RecordWriter
 
 
 def run_inference(
@@ -36,8 +36,7 @@ def run_inference(
         The records corresponding to the examples.
     """
     records = []
-    f_mode = "a" if append else "w"
-    with open(out_path, f_mode) as f:
+    with RecordWriter(out_path, append=append) as writer:
         pbar = (
             examples
             if not progress
@@ -65,11 +64,7 @@ def run_inference(
             if generation.tokens is not None:
                 record["tokens"] = [asdict(t) for t in generation.tokens]
 
-            # Flush per record so a mid-run crash still leaves the completed
-            # examples on disk.
-            f.write(json.dumps(record) + "\n")
-            f.flush()
-
+            writer.write(record)
             records.append(record)
 
     return records

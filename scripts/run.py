@@ -15,10 +15,11 @@ from geo_vlms.example import Example
 from geo_vlms.inference import run_inference
 from geo_vlms.provenance import collect_provenance
 from geo_vlms.runs import (
+    check_backend,
+    check_keys,
     drop_truncated_tail,
     finished_ids,
     note_resume,
-    validate_resume,
 )
 
 register_configs()
@@ -130,37 +131,31 @@ def main(cfg: DictConfig):
     # ----- Backend -----
     backend = build_backend(cfg=cfg)
 
-    # ----- Resume checks -----
-    prev_meta = None
+    # ----- Provenance and resume checks -----
+    command = shlex.join(sys.argv)
+    started_at = datetime.now(UTC).isoformat()
+    provenance = collect_provenance(
+        command=command,
+        args=OmegaConf.to_container(cfg, resolve=True),
+        started_at=started_at,
+        backend=backend,
+        examples=examples,
+    )
     if cfg.resume:
         with open(provenance_out) as f:
             prev_meta = json.load(f)
-        validate_resume(
-            prev_meta=prev_meta,
-            examples=examples,
-            args=OmegaConf.to_container(cfg, resolve=True),
-            backend=backend,
+        check_keys(
+            prev_meta,
+            provenance,
+            ["args.model_name", "args.max_new_tokens", "dataset.sha256"],
         )
+        check_backend(prev_meta, provenance)
         if drop_truncated_tail(out_path):
             print("Dropping truncated final record; its example will rerun.")
         done = finished_ids(out_path)
         examples = [e for e in examples if e.id not in done]
+        provenance = note_resume(prev_meta, command=command, started_at=started_at)
 
-    # ----- Handling provenance -----
-    if prev_meta is not None:
-        provenance = note_resume(
-            prev_meta,
-            command=shlex.join(sys.argv),
-            started_at=datetime.now(UTC).isoformat(),
-        )
-    else:
-        provenance = collect_provenance(
-            command=shlex.join(sys.argv),
-            args=OmegaConf.to_container(cfg, resolve=True),
-            started_at=datetime.now(UTC).isoformat(),
-            backend=backend,
-            examples=examples,
-        )
     with open(provenance_out, "w") as f:
         json.dump(provenance, f, indent=4)
     print(f"Wrote run provenance to {provenance_out}")
@@ -173,6 +168,7 @@ def main(cfg: DictConfig):
         model_name=cfg.model_name,
         max_new_tokens=cfg.max_new_tokens,
         append=cfg.resume,
+        top_logprobs=cfg.top_logprobs,
     )
     print(f"Wrote records to {out_path}")
 
