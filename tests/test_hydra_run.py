@@ -8,6 +8,7 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf, open_dict
 from omegaconf.errors import MissingMandatoryValue
 
+from geo_vlms.cli import build_examples
 from geo_vlms.config import register_configs
 from geo_vlms.inference import run_inference
 from geo_vlms.tasks import TASKS
@@ -31,6 +32,34 @@ def test_out_path_follows_config_group_choices():
     cfg = make_cfg("dataset=dior", "backend=huggingface", "model_name=org/m")
 
     assert cfg.out == "results/dior/counting/org/m/huggingface/records_seed0.jsonl"
+
+
+def test_text_only_suffixes_out_path():
+    cfg = make_cfg("dataset=dior", "backend=huggingface", "model_name=org/m")
+    text_only = make_cfg(
+        "dataset=dior", "backend=huggingface", "model_name=org/m", "text_only=true"
+    )
+
+    assert cfg.out.endswith("/records_seed0.jsonl")
+    assert text_only.out.endswith("/records_seed0_text_only.jsonl")
+
+
+def test_text_only_drops_images(tmp_path):
+    (tmp_path / "dataset").mkdir()
+    (tmp_path / "dataset" / "tiny.yaml").write_text(
+        "_target_: fake_plugins.build_dataset\nn: 2\n"
+    )
+    cfg = make_cfg(f"hydra.searchpath=[file://{tmp_path}]", "dataset=tiny")
+
+    sighted = build_examples(cfg)
+    cfg.text_only = True
+    text_only = build_examples(cfg)
+
+    assert [e.image_path for e in sighted] == ["/0.jpg", "/1.jpg"]
+    assert all(e.image_path is None for e in text_only)
+    assert [(e.id, e.prompt, e.expected) for e in text_only] == [
+        (e.id, e.prompt, e.expected) for e in sighted
+    ]
 
 
 def test_backend_config_carries_model_name():

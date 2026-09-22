@@ -21,7 +21,7 @@ def build_dataset(task: Task, seed: int, n: int) -> list[Example]:
     return [
         Example(
             id=f"{i}",
-            image_path=None,
+            image_path=f"/{i}.jpg",
             prompt=task.format_prompt(Category("ship", "ships")),
         )
         for i in range(n)
