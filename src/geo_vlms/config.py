@@ -18,6 +18,7 @@ class Config:
     overwrite: bool = False
     resume: bool = False
     max_new_tokens: int = 64
+    top_logprobs: int | None = None
 
 
 @dataclass

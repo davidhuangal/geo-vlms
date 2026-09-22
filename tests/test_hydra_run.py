@@ -46,6 +46,11 @@ def test_rejects_bad_overrides(override):
         make_cfg(override)
 
 
+def test_top_logprobs_defaults_off_and_accepts_int():
+    assert make_cfg().top_logprobs is None
+    assert make_cfg("top_logprobs=5").top_logprobs == 5
+
+
 def test_llama_server_requires_base_url():
     cfg = make_cfg("backend=llama_server")
 

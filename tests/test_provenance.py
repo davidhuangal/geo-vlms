@@ -6,6 +6,7 @@ import subprocess
 
 import pytest
 
+from geo_vlms.backends.base import Generation
 from geo_vlms.example import Example
 from geo_vlms.provenance import collect_provenance, git_info
 
@@ -20,8 +21,8 @@ STUB_DESCRIPTION = {
 class StubBackend:
     """Canned backend to avoid an expensive model load."""
 
-    def generate(self, prompt, image_paths, max_new_tokens):
-        return "canned response"
+    def generate(self, prompt, images, max_new_tokens, top_logprobs=None):
+        return Generation(text="canned response")
 
     def describe(self):
         return dict(STUB_DESCRIPTION)
@@ -108,6 +109,31 @@ def test_provenance_keys(provenance):
     git_meta = provenance["git"]
     if git_meta is not None:
         assert {"sha", "dirty"} == set(git_meta)
+
+
+def test_provenance_without_examples_omits_dataset(sample_run):
+    command, args, started_at, _ = sample_run
+    meta = collect_provenance(
+        command=command, args=args, started_at=started_at, backend=StubBackend()
+    )
+
+    assert "dataset" not in meta
+
+
+def test_provenance_extra_merged_at_top_level(sample_run):
+    command, args, started_at, examples = sample_run
+    meta = collect_provenance(
+        command=command,
+        args=args,
+        started_at=started_at,
+        backend=StubBackend(),
+        examples=examples,
+        extra={"prompt_id": "yesno", "variant": "boxed"},
+    )
+
+    assert meta["prompt_id"] == "yesno"
+    assert meta["variant"] == "boxed"
+    assert "dataset" in meta
 
 
 def test_provenance_backend(provenance):

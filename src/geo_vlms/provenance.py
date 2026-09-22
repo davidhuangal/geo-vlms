@@ -69,7 +69,8 @@ def collect_provenance(
     args: dict,
     started_at: str,
     backend: Backend,
-    examples: list[Example],
+    examples: list[Example] | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Assemble the provenance metadata for an inference run.
@@ -79,12 +80,14 @@ def collect_provenance(
         args: The resolved CLI arguments.
         started_at: ISO-8601 timestamp of when the run started.
         backend: The currently-loaded backend.
-        examples: The examples the run will execute.
+        examples: The examples the run will execute; None omits the
+            dataset section for runs that build inputs some other way.
+        extra: Project-specific fields merged into the top level.
 
     Returns:
         A JSON-serializable dict describing the run.
     """
-    meta = {}
+    meta: dict[str, Any] = {}
 
     # Simple copy into meta
     meta["command"] = command
@@ -95,13 +98,17 @@ def collect_provenance(
     meta["backend"] = backend.describe()
 
     # ----- Dataset Meta -----
-    dataset_meta = {}
-    dataset_meta["num_examples"] = len(examples)
-    dataset_meta["sha256"] = dataset_sha256(examples)
-    meta["dataset"] = dataset_meta
+    if examples is not None:
+        dataset_meta = {}
+        dataset_meta["num_examples"] = len(examples)
+        dataset_meta["sha256"] = dataset_sha256(examples)
+        meta["dataset"] = dataset_meta
 
     # ----- Environment Meta -----
     meta["env"] = env_info()
     meta["git"] = git_info()
+
+    if extra is not None:
+        meta.update(extra)
 
     return meta

@@ -1,9 +1,47 @@
 import base64
 import mimetypes
+import time
 
 import httpx
 import openai
 from openai import OpenAI, OpenAIError
+
+from .base import Generation, TokenLogprob
+
+
+def _guess_mime_from_bytes(image_bytes: bytes) -> str:
+    # Read the header bytes
+    header = image_bytes[:12]
+
+    if header.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    elif header.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    elif header.startswith(b"GIF87a") or header.startswith(b"GIF89a"):
+        return "image/gif"
+    elif header.startswith(b"RIFF") and header[8:12] == b"WEBP":
+        return "image/webp"
+
+    # Default fallback
+    return "image/jpeg"
+
+
+def _data_url(image: str | bytes) -> str:
+    """Convert an image to a data_url ready for llama server."""
+    if isinstance(image, str):
+        with open(image, "rb") as f:
+            image_bytes = f.read()
+        mime_type, _ = mimetypes.guess_type(image)
+    elif isinstance(image, bytes):
+        image_bytes = image
+        mime_type = _guess_mime_from_bytes(image_bytes=image)
+    else:
+        raise ValueError("Image must be an image path or image data.")
+
+    base64_string = base64.b64encode(image_bytes).decode("utf-8")
+    if not mime_type:
+        mime_type = "image/jpeg"  # fallback
+    return f"data:{mime_type};base64,{base64_string}"
 
 
 class LlamaServerBackend:
@@ -53,14 +91,14 @@ class LlamaServerBackend:
             )
 
     def _build_messages(
-        self, prompt: str, image_paths: list[str] | None = None
+        self, prompt: str, images: list[str | bytes] | None = None
     ) -> list:
         """
         Generate the messages format to send to the VLM.
 
         Args:
             prompt: The text prompt to send to the model.
-            image_paths: The paths to the images to show to the VLM.
+            images: The paths to images or image bytes to send to the model.
 
         Returns:
             The messages list in the appropriate format.
@@ -68,26 +106,16 @@ class LlamaServerBackend:
         user_content = []
 
         # Image content
-        if image_paths is not None:
-            for image_path in image_paths:
-                with open(image_path, "rb") as image_file:
-                    # Convert to base64 string
-                    image_bytes = image_file.read()
-                    base64_string = base64.b64encode(image_bytes).decode("utf-8")
+        if images is not None:
+            for image in images:
+                data_url = _data_url(image=image)
 
-                    # Guess the correct MIME type (e.g., 'image/jpeg', 'image/png')
-                    mime_type, _ = mimetypes.guess_type(image_path)
-                    if not mime_type:
-                        mime_type = "image/jpeg"  # Fallback default
-
-                    user_content.append(
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:{mime_type};base64,{base64_string}"
-                            },
-                        }
-                    )
+                user_content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": data_url},
+                    }
+                )
 
         # Text content
         user_content.append({"type": "text", "text": prompt})
@@ -98,16 +126,17 @@ class LlamaServerBackend:
     def generate(
         self,
         prompt: str,
-        image_paths: list[str] | None,
+        images: list[str | bytes] | None,
         max_new_tokens: int = 64,
-    ) -> str:
+        top_logprobs: int | None = None,
+    ) -> Generation:
         """
         Generate a text response from a model.
         """
-        result = self.client.chat.completions.create(
-            # llama server ignores, but needed for this call
+
+        chat_kwargs = dict(
             model="unused",
-            messages=self._build_messages(prompt=prompt, image_paths=image_paths),
+            messages=self._build_messages(prompt=prompt, images=images),
             # Greedy sampling
             temperature=self.temperature,
             seed=self.seed,
@@ -118,11 +147,43 @@ class LlamaServerBackend:
                 "chat_template_kwargs": {"enable_thinking": False},
             },
         )
-        response = result.choices[0].message.content
-        if response is None:
+        if top_logprobs is not None:
+            chat_kwargs["logprobs"] = True
+            chat_kwargs["top_logprobs"] = top_logprobs
+
+        t0 = time.perf_counter()
+        result = self.client.chat.completions.create(**chat_kwargs)
+        latency_s = time.perf_counter() - t0
+        text_response = result.choices[0].message.content
+        if text_response is None:
             raise RuntimeError("Server response has no message content.")
 
-        return response
+        if top_logprobs is not None:
+            logprobs = result.choices[0].logprobs
+            if logprobs is None or logprobs.content is None:
+                raise RuntimeError(f"Server at {self.base_url} returned no logprobs.")
+            tokens = [
+                TokenLogprob(
+                    token=tok.token,
+                    logprob=tok.logprob,
+                    top={t.token: t.logprob for t in tok.top_logprobs},
+                )
+                for tok in logprobs.content
+            ]
+        else:
+            tokens = None
+
+        usage = result.usage
+
+        generation = Generation(
+            text=text_response,
+            tokens=tokens,
+            prompt_tokens=usage.prompt_tokens if usage else None,
+            completion_tokens=usage.completion_tokens if usage else None,
+            latency_s=latency_s,
+        )
+
+        return generation
 
     def describe(self) -> dict:
         meta = {}

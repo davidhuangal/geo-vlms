@@ -30,6 +30,22 @@ CHAT_RESPONSE = {
             "message": {"role": "assistant", "content": "canned response"},
         }
     ],
+    "usage": {"prompt_tokens": 10, "completion_tokens": 3, "total_tokens": 13},
+}
+
+LOGPROBS_RESPONSE = json.loads(json.dumps(CHAT_RESPONSE))
+LOGPROBS_RESPONSE["choices"][0]["logprobs"] = {
+    "content": [
+        {
+            "token": "Yes",
+            "logprob": -0.1,
+            "bytes": None,
+            "top_logprobs": [
+                {"token": "Yes", "logprob": -0.1, "bytes": None},
+                {"token": "No", "logprob": -2.3, "bytes": None},
+            ],
+        }
+    ]
 }
 
 
@@ -58,9 +74,14 @@ def test_generate_request_body(tmp_path):
     backend = build_backend(requests)
     output = backend.generate("how many?", [str(image_path)], max_new_tokens=32)
 
-    assert output == "canned response"
+    assert output.text == "canned response"
+    assert output.tokens is None
+    assert output.prompt_tokens == 10
+    assert output.completion_tokens == 3
 
     body = json.loads(requests[-1].read())
+    assert "logprobs" not in body
+    assert "top_logprobs" not in body
 
     # Greedy sampling must be requested explicitly: server defaults are not
     # greedy, and hybrid reasoning models must not think away the budget.
@@ -74,6 +95,37 @@ def test_generate_request_body(tmp_path):
     image_part, text_part = message["content"]
     assert image_part["image_url"]["url"].startswith("data:image/jpeg;base64,")
     assert text_part == {"type": "text", "text": "how many?"}
+
+
+def test_generate_bytes_image():
+    requests = []
+    backend = build_backend(requests)
+    backend.generate("q", [b"\x89PNG\r\n\x1a\nfake"], max_new_tokens=16)
+
+    body = json.loads(requests[-1].read())
+    image_part, _ = body["messages"][0]["content"]
+    assert image_part["image_url"]["url"].startswith("data:image/png;base64,")
+
+
+def test_generate_logprobs():
+    requests = []
+    backend = build_backend(requests, chat_response=LOGPROBS_RESPONSE)
+    output = backend.generate("q", None, max_new_tokens=16, top_logprobs=2)
+
+    body = json.loads(requests[-1].read())
+    assert body["logprobs"] is True
+    assert body["top_logprobs"] == 2
+
+    (tok,) = output.tokens
+    assert tok.token == "Yes"
+    assert tok.logprob == -0.1
+    assert tok.top == {"Yes": -0.1, "No": -2.3}
+
+
+def test_generate_logprobs_missing_raises():
+    backend = build_backend([])
+    with pytest.raises(RuntimeError, match="logprobs"):
+        backend.generate("q", None, max_new_tokens=16, top_logprobs=2)
 
 
 def test_generate_without_images():
