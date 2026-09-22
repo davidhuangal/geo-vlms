@@ -44,15 +44,19 @@ class Counting(Task[int]):
                 "exact_match": 0.0,
                 "absolute_error": float("nan"),  # 'nan' to not affect calculated mean
                 "signed_error": float("nan"),
+                "relative_error": float("nan"),
                 "within_1": 0.0,
             }
 
         abs_error = abs(prediction - expected)
         signed_error = prediction - expected
+        # Undefined on empty images, so its mean is MAPE over non-empty ones
+        relative_error = abs_error / expected if expected > 0 else float("nan")
         return {
             "valid": 1.0,
             "exact_match": float(prediction == expected),
             "absolute_error": float(abs_error),
             "signed_error": float(signed_error),
+            "relative_error": float(relative_error),
             "within_1": float(abs_error <= 1),
         }

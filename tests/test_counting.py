@@ -60,6 +60,7 @@ def test_counting_scoring(task):
     assert metrics["exact_match"] == 0.0
     assert metrics["absolute_error"] == 5.0
     assert metrics["signed_error"] == -5.0
+    assert metrics["relative_error"] == pytest.approx(5 / 9)
     assert metrics["within_1"] == 0.0
 
     # ----- Scenario 2: pred > expected
@@ -70,6 +71,7 @@ def test_counting_scoring(task):
     assert metrics["exact_match"] == 0.0
     assert metrics["absolute_error"] == 5.0
     assert metrics["signed_error"] == 5.0
+    assert metrics["relative_error"] == 1.25
     assert metrics["within_1"] == 0.0
 
     # ----- Scenario 3: pred == expected
@@ -80,6 +82,7 @@ def test_counting_scoring(task):
     assert metrics["exact_match"] == 1.0
     assert metrics["absolute_error"] == 0.0
     assert metrics["signed_error"] == 0.0
+    assert metrics["relative_error"] == 0.0
     assert metrics["within_1"] == 1.0
 
     # ----- Scenario 4: pred == None
@@ -90,4 +93,11 @@ def test_counting_scoring(task):
     assert metrics["exact_match"] == 0.0
     assert math.isnan(metrics["absolute_error"])
     assert math.isnan(metrics["signed_error"])
+    assert math.isnan(metrics["relative_error"])
     assert metrics["within_1"] == 0.0
+
+
+def test_counting_relative_error_undefined_on_empty(task):
+    metrics = task.score(prediction=2, expected=0)
+    assert metrics["absolute_error"] == 2.0
+    assert math.isnan(metrics["relative_error"])
