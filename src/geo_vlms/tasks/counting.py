@@ -4,6 +4,14 @@ import re
 
 from .base import Category, Task
 
+NUMBER_WORDS = {
+    word: value
+    for value, word in enumerate(
+        "zero one two three four five six seven eight nine ten eleven twelve "
+        "thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split()
+    )
+} | {"none": 0}
+
 
 class Counting(Task[int]):
     def parse_response(self, response: str) -> int | None:
@@ -14,8 +22,12 @@ class Counting(Task[int]):
         if match:
             first_int = int(match.group())
             return first_int
-        else:
-            return None
+
+        # Fall back to a spelled-out number, e.g. "zero" or "None."
+        for word in re.findall(r"[a-z]+", response.lower()):
+            if word in NUMBER_WORDS:
+                return NUMBER_WORDS[word]
+        return None
 
     def format_prompt(self, category: Category) -> str:
         return (

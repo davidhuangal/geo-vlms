@@ -36,9 +36,19 @@ def test_counting_parse_in_text(task):
     assert task.parse_response("There are 12 planes.") == 12
 
 
-@pytest.mark.xfail(reason="word-number parsing not yet implemented", strict=True)
 def test_counting_parse_numeric_word(task):
     assert task.parse_response("fifteen") == 15
+    assert task.parse_response("Zero.") == 0
+    assert task.parse_response("None") == 0
+    assert task.parse_response("There are two ships.") == 2
+
+
+def test_counting_digits_win_over_words(task):
+    assert task.parse_response("one of the 3 tanks") == 3
+
+
+def test_counting_unparseable_is_none(task):
+    assert task.parse_response("I cannot tell.") is None
 
 
 def test_counting_scoring(task):
