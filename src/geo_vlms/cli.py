@@ -1,6 +1,7 @@
 import json
 import shlex
 import sys
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -35,7 +36,12 @@ def build_examples(cfg: DictConfig) -> list[Example]:
     """Call the dataset builder named by `cfg.dataset._target_`."""
     if cfg.task not in TASKS:
         raise ValueError(f"Unknown task {cfg.task}; tasks: {', '.join(TASKS)}")
-    return instantiate(cfg.dataset, task=TASKS[cfg.task](), seed=cfg.seed)
+    examples = instantiate(cfg.dataset, task=TASKS[cfg.task](), seed=cfg.seed)
+    if cfg.text_only:
+        # Same prompts, ids and labels, no image: what the model answers from
+        # the question alone.
+        examples = [replace(e, image_path=None) for e in examples]
+    return examples
 
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.3")

@@ -65,6 +65,7 @@ Config is [Hydra](https://hydra.cc): `key=value` overrides on `src/geo_vlms/conf
 Each `backend/` and `dataset/` yaml names its class or builder function with `_target_`, so a backend or dataset that lives outside this package is one yaml file in your own config dir, passed with `--config-dir`.
 Records default to `results/<dataset>/<task>/<model>/<backend>/records_seed<seed>.jsonl`; override with `out=`.
 Each run writes one JSONL record per (image, category) pair, asking every category of every image so absence questions also come from images with objects.
+`text_only=true` sends the same prompts with no image, a control for what the model answers from the question alone; records go to `records_seed<seed>_text_only.jsonl`.
 VHR-10 knobs: `dataset.num_pos`, `dataset.num_neg`, `dataset.no_neg=true`.
 DIOR knobs: `dataset.split` (default `test`), `dataset.num_images`.
 
