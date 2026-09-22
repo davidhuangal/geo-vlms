@@ -82,6 +82,19 @@ def test_initialization(hf_mocks, device, bf16_supported, dtype, attention):
         hf_mocks.bf16_supported.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("cuda", "mps", "device"),
+    [(True, True, "cuda"), (False, True, "mps"), (False, False, "cpu")],
+)
+def test_device_autodetect(hf_mocks, monkeypatch, cuda, mps, device):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: cuda)
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: mps)
+
+    HuggingFaceBackend(MODEL_NAME, device=None)
+
+    hf_mocks.model.to.assert_called_once_with(device)
+
+
 @pytest.mark.parametrize("images", [None, []])
 def test_messages_without_images(backend, images):
     assert backend._build_messages("text only", images) == [

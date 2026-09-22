@@ -1,5 +1,4 @@
 import json
-import os
 import shlex
 import sys
 from datetime import UTC, datetime
@@ -36,35 +35,18 @@ def build_backend(
     cfg: DictConfig,
 ) -> Backend:
     if cfg.backend.name == "huggingface":
-        import torch
-
         from geo_vlms.backends.huggingface import HuggingFaceBackend
 
-        device = cfg.backend.device
-        if device is None:
-            if torch.cuda.is_available():
-                device = "cuda"
-            elif torch.backends.mps.is_available():
-                device = "mps"
-            else:
-                device = "cpu"
-        return HuggingFaceBackend(model_name=cfg.model_name, device=device)
+        return HuggingFaceBackend(model_name=cfg.model_name, device=cfg.backend.device)
     if cfg.backend.name == "llama_server":
         from geo_vlms.backends.llama_server import LlamaServerBackend
 
-        backend = LlamaServerBackend(
+        return LlamaServerBackend(
             base_url=cfg.backend.base_url,
-            api_key=os.environ.get("GEO_VLMS_LLAMA_API_KEY", "unused"),
             temperature=cfg.backend.temperature,
             top_k=cfg.backend.top_k,
+            model_name=cfg.model_name,
         )
-        alias = backend.describe().get("model_alias")
-        if alias is not None and alias != cfg.model_name:
-            print(
-                f"Warning: --model {cfg.model_name} does not match the server's "
-                f"model {alias}; records will be labeled {cfg.model_name}."
-            )
-        return backend
     raise ValueError(f"Unknown backend: {cfg.backend.name}")
 
 

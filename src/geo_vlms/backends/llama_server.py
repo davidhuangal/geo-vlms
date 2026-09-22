@@ -1,5 +1,6 @@
 import base64
 import mimetypes
+import os
 import time
 
 import httpx
@@ -48,16 +49,33 @@ class LlamaServerBackend:
     def __init__(
         self,
         base_url: str,
-        api_key: str = "unused",
+        api_key: str | None = None,
         temperature: float = 0.0,
         seed: int = 0,
         top_k: int = 1,
+        model_name: str | None = None,
         http_client: httpx.Client | None = None,
     ):
+        """
+        Backend for a llama-server reached over its OpenAI-compatible API.
+
+        Args:
+            base_url: The server's `/v1` URL.
+            api_key: Bearer token; defaults to `GEO_VLMS_LLAMA_API_KEY` or
+                `unused` when the server needs none.
+            temperature: Sampling temperature.
+            seed: Sampling seed.
+            top_k: Sampling top-k.
+            model_name: The label records will carry; warns when it differs
+                from the alias the server reports.
+            http_client: Optional client, e.g. a mock transport in tests.
+        """
         self.base_url = base_url
         self.temperature = temperature
         self.seed = seed
         self.top_k = top_k
+        if api_key is None:
+            api_key = os.environ.get("GEO_VLMS_LLAMA_API_KEY", "unused")
 
         # Generous read timeout since the first request can trigger slow
         # prompt processing
@@ -88,6 +106,13 @@ class LlamaServerBackend:
             raise RuntimeError(
                 f"Server at {base_url} has no vision support; "
                 "was it launched with --mmproj?"
+            )
+
+        alias = self._props.get("model_alias")
+        if model_name is not None and alias is not None and alias != model_name:
+            print(
+                f"Warning: model_name {model_name} does not match the server's "
+                f"model {alias}; records will be labeled {model_name}."
             )
 
     def _build_messages(
