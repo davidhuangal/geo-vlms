@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from geo_vlms.example import Example
-from geo_vlms.tasks import Counting, Existence
+from geo_vlms.tasks import Counting, Existence, Task
 
 CLASS_MAP = {
     "airplane": "airplane",
@@ -124,3 +124,17 @@ def build_existence_dataset(
 ) -> list[Example]:
     """Build DIOR existence examples from one official split."""
     return _build_dataset(data_dir, split, Existence(), num_images, seed, categories)
+
+
+def build_dataset(
+    data_dir: str | Path,
+    task: Task,
+    seed: int = 0,
+    split: str = "test",
+    num_images: int | None = None,
+    categories: Collection[str] | None = None,
+) -> list[Example]:
+    """Build DIOR examples for `task` from one official split."""
+    if not isinstance(task, Counting | Existence):
+        raise ValueError(f"Unsupported task for dior: {type(task).__name__}")
+    return _build_dataset(data_dir, split, task, num_images, seed, categories)
