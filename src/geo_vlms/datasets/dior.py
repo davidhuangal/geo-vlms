@@ -5,31 +5,36 @@ from pathlib import Path
 import pandas as pd
 
 from geo_vlms.example import Example
-from geo_vlms.tasks import Counting, Existence, Task
+from geo_vlms.tasks import Category, Counting, Existence, Task
 
 CLASS_MAP = {
-    "airplane": "airplane",
-    "airport": "airport",
-    "baseballfield": "baseball field",
-    "basketballcourt": "basketball court",
-    "bridge": "bridge",
-    "chimney": "chimney",
-    "dam": "dam",
-    "Expressway-Service-area": "expressway service area",
-    "Expressway-toll-station": "expressway toll station",
-    "golffield": "golf field",
-    "groundtrackfield": "ground track field",
-    "harbor": "harbor",
-    "overpass": "overpass",
-    "ship": "ship",
-    "stadium": "stadium",
-    "storagetank": "storage tank",
-    "tenniscourt": "tennis court",
-    "trainstation": "train station",
-    "vehicle": "vehicle",
-    "windmill": "windmill",
+    "airplane": Category("airplane", "airplanes"),
+    "airport": Category("airport", "airports"),
+    "baseballfield": Category("baseball field", "baseball fields"),
+    "basketballcourt": Category("basketball court", "basketball courts"),
+    "bridge": Category("bridge", "bridges"),
+    "chimney": Category("chimney", "chimneys"),
+    "dam": Category("dam", "dams"),
+    "Expressway-Service-area": Category(
+        "expressway service area", "expressway service areas"
+    ),
+    "Expressway-toll-station": Category(
+        "expressway toll station", "expressway toll stations"
+    ),
+    "golffield": Category("golf field", "golf fields"),
+    "groundtrackfield": Category("ground track field", "ground track fields"),
+    "harbor": Category("harbor", "harbors"),
+    "overpass": Category("overpass", "overpasses"),
+    "ship": Category("ship", "ships"),
+    "stadium": Category("stadium", "stadiums"),
+    "storagetank": Category("storage tank", "storage tanks"),
+    "tenniscourt": Category("tennis court", "tennis courts"),
+    "trainstation": Category("train station", "train stations"),
+    "vehicle": Category("vehicle", "vehicles"),
+    "windmill": Category("windmill", "windmills"),
 }
-CATEGORIES = tuple(CLASS_MAP.values())
+CATEGORIES = tuple(category.name for category in CLASS_MAP.values())
+_BY_NAME = {category.name: category for category in CLASS_MAP.values()}
 SPLITS = ("train", "val", "test")
 
 
@@ -91,7 +96,7 @@ def _build_dataset(
             Example(
                 id=f"{split}/{row.image_id}:{row.category}",
                 image_path=str(data_dir / row.image_path),
-                prompt=task.format_prompt(category_name=row.category),
+                prompt=task.format_prompt(_BY_NAME[row.category]),
                 expected=expected,
                 metadata={
                     "dataset": "dior",

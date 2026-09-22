@@ -1,7 +1,7 @@
 # GEO-VLMs
 
 Evaluates vision-language models on remote-sensing imagery.
-It currently runs two tasks, existence ("Are there any ships in this image?") and counting ("How many ships are in this image?").
+It currently runs two tasks, existence ("Are there any ships in this image?") and counting ("How many ships are there in this image?").
 Models either load in-process from HuggingFace or sit behind a [llama-server](https://github.com/ggml-org/llama.cpp).
 
 ## Setup

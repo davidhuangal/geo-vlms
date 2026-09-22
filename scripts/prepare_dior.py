@@ -92,7 +92,7 @@ def prepare_dataset(data_dir: str | Path, out_path: str | Path) -> tuple[int, in
                             "split": split,
                             "image_path": relative_image_path.as_posix(),
                             "raw_category": raw_category,
-                            "category": category,
+                            "category": category.name,
                             "count": counts[raw_category],
                         }
                     )

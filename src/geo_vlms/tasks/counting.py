@@ -2,7 +2,15 @@
 
 import re
 
-from .base import Task
+from .base import Category, Task
+
+NUMBER_WORDS = {
+    word: value
+    for value, word in enumerate(
+        "zero one two three four five six seven eight nine ten eleven twelve "
+        "thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split()
+    )
+} | {"none": 0}
 
 
 class Counting(Task[int]):
@@ -14,14 +22,17 @@ class Counting(Task[int]):
         if match:
             first_int = int(match.group())
             return first_int
-        else:
-            return None
 
-    def format_prompt(self, category_name: str) -> str:
-        question = self._counting_question(category_name=category_name)
+        # Fall back to a spelled-out number, e.g. "zero" or "None."
+        for word in re.findall(r"[a-z]+", response.lower()):
+            if word in NUMBER_WORDS:
+                return NUMBER_WORDS[word]
+        return None
+
+    def format_prompt(self, category: Category) -> str:
         return (
-            f"{question}\nRespond with one integer only and no other prose or "
-            "punctuation. Assume this will be passed to a Python int(response)."
+            f"How many {category.plural} are there in this image? "
+            "Answer with a number only."
         )
 
     def score(self, prediction: int | None, expected: int) -> dict[str, float]:
@@ -33,18 +44,19 @@ class Counting(Task[int]):
                 "exact_match": 0.0,
                 "absolute_error": float("nan"),  # 'nan' to not affect calculated mean
                 "signed_error": float("nan"),
+                "relative_error": float("nan"),
                 "within_1": 0.0,
             }
 
         abs_error = abs(prediction - expected)
         signed_error = prediction - expected
+        # Undefined on empty images, so its mean is MAPE over non-empty ones
+        relative_error = abs_error / expected if expected > 0 else float("nan")
         return {
             "valid": 1.0,
             "exact_match": float(prediction == expected),
             "absolute_error": float(abs_error),
             "signed_error": float(signed_error),
+            "relative_error": float(relative_error),
             "within_1": float(abs_error <= 1),
         }
-
-    def _counting_question(self, category_name: str) -> str:
-        return f"How many {category_name} objects are in this image?"

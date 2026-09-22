@@ -2,12 +2,24 @@ import math
 
 import pytest
 
-from geo_vlms.tasks import Existence
+from geo_vlms.tasks import Category, Existence
 
 
 @pytest.fixture
 def task() -> Existence:
     return Existence()
+
+
+def test_existence_prompt_uses_plural(task):
+    assert task.format_prompt(Category("ship", "ships")) == (
+        "Are there any ships in this image? Answer yes or no."
+    )
+
+
+def test_existence_parse_words(task):
+    assert task.parse_response("Yes") is True
+    assert task.parse_response("No.") is False
+    assert task.parse_response("yes, there are two.") is True
 
 
 def test_existence_parse_single_char(task):

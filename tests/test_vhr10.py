@@ -44,6 +44,21 @@ def vhr10_dirs(tmp_path):
     return dirs
 
 
+def test_class_map_categories():
+    names = [category.name for category in CLASS_MAP.values()]
+
+    assert len(set(names)) == len(names) == 10
+    assert all(c.plural and c.plural != c.name for c in CLASS_MAP.values())
+
+
+def test_prompts_use_plural(vhr10_dirs):
+    dataset = build_counting_dataset(pos_dir=vhr10_dirs.pos, gt_dir=vhr10_dirs.gt)
+    by_id = {e.id: e for e in dataset}
+
+    assert by_id["pos/001:storage tank"].prompt.startswith("How many storage tanks ")
+    assert by_id["pos/001:storage tank"].metadata["category"] == "storage tank"
+
+
 def test_parse_annotation(vhr10_dirs):
     gt_df = parse_annotation(vhr10_dirs.gt / "001.txt")
 

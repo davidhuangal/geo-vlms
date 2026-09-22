@@ -2,7 +2,7 @@
 
 import re
 
-from .base import Task
+from .base import Category, Task
 
 
 class Existence(Task[bool]):
@@ -20,12 +20,5 @@ class Existence(Task[bool]):
         correct = float(prediction == expected)
         return {"valid": 1.0, "correct": correct}
 
-    def _existence_question(self, category_name: str) -> str:
-        return f"Are there any {category_name} objects in this image?"
-
-    def format_prompt(self, category_name: str) -> str:
-        question = self._existence_question(category_name=category_name)
-        return (
-            f"{question}\nRespond with a single character: Y for yes or N for no, "
-            "and no other prose or punctuation."
-        )
+    def format_prompt(self, category: Category) -> str:
+        return f"Are there any {category.plural} in this image? Answer yes or no."

@@ -6,6 +6,7 @@ import pytest
 
 from geo_vlms.datasets.dior import (
     CATEGORIES,
+    CLASS_MAP,
     build_counting_dataset,
     build_dataset,
     build_existence_dataset,
@@ -91,6 +92,22 @@ def test_prepare_dataset_rejects_missing_annotation(dior_dir):
         _prepare(dior_dir)
 
     assert "Annotation mismatch" in error.value.stderr
+
+
+def test_class_map_categories():
+    names = [category.name for category in CLASS_MAP.values()]
+
+    assert tuple(names) == CATEGORIES
+    assert len(set(names)) == len(names) == 20
+    assert all(c.plural and c.plural != c.name for c in CLASS_MAP.values())
+    assert CLASS_MAP["overpass"].plural == "overpasses"
+
+
+def test_prompts_use_plural(dior_dir):
+    examples = build_counting_dataset(dior_dir, "train", categories=["ship"])
+
+    assert all(e.prompt.startswith("How many ships ") for e in examples)
+    assert all(e.metadata["category"] == "ship" for e in examples)
 
 
 def test_build_counting_dataset(dior_dir):
