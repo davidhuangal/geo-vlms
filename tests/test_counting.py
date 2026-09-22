@@ -2,12 +2,18 @@ import math
 
 import pytest
 
-from geo_vlms.tasks import Counting
+from geo_vlms.tasks import Category, Counting
 
 
 @pytest.fixture
 def task() -> Counting:
     return Counting()
+
+
+def test_counting_prompt_uses_plural(task):
+    assert task.format_prompt(Category("storage tank", "storage tanks")) == (
+        "How many storage tanks are there in this image? Answer with a number only."
+    )
 
 
 def test_counting_parse_int(task):

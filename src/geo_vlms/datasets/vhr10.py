@@ -5,19 +5,19 @@ from pathlib import Path
 import pandas as pd
 
 from geo_vlms.example import Example
-from geo_vlms.tasks import Counting, Existence, Task
+from geo_vlms.tasks import Category, Counting, Existence, Task
 
 CLASS_MAP = {
-    1: "airplane",
-    2: "ship",
-    3: "storage tank",
-    4: "baseball diamond",
-    5: "tennis court",
-    6: "basketball court",
-    7: "ground track field",
-    8: "harbor",
-    9: "bridge",
-    10: "vehicle",
+    1: Category("airplane", "airplanes"),
+    2: Category("ship", "ships"),
+    3: Category("storage tank", "storage tanks"),
+    4: Category("baseball diamond", "baseball diamonds"),
+    5: Category("tennis court", "tennis courts"),
+    6: Category("basketball court", "basketball courts"),
+    7: Category("ground track field", "ground track fields"),
+    8: Category("harbor", "harbors"),
+    9: Category("bridge", "bridges"),
+    10: Category("vehicle", "vehicles"),
 }
 
 
@@ -43,7 +43,7 @@ def _sorted_jpgs(
     return image_paths
 
 
-def _category_counts(image_path: Path, gt_dir: os.PathLike) -> dict[str, int]:
+def _category_counts(image_path: Path, gt_dir: os.PathLike) -> dict[Category, int]:
     gt_path = Path(gt_dir) / image_path.with_suffix(".txt").name
     if not gt_path.exists():
         raise FileNotFoundError(f"No such file {gt_path}")
@@ -73,17 +73,17 @@ def build_counting_dataset(
 
     pos_rng = random.Random(f"{seed}-pos")
     for image_path in _sorted_jpgs(pos_dir, num_pos_images, pos_rng):
-        for category_name, count in _category_counts(image_path, gt_dir).items():
+        for category, count in _category_counts(image_path, gt_dir).items():
             examples.append(
                 Example(
-                    id=f"pos/{image_path.stem}:{category_name}",
+                    id=f"pos/{image_path.stem}:{category.name}",
                     image_path=str(image_path),
-                    prompt=task.format_prompt(category_name=category_name),
+                    prompt=task.format_prompt(category),
                     expected=count,
                     metadata={
                         "dataset": "vhr10",
                         "split": "positive",
-                        "category": category_name,
+                        "category": category.name,
                     },
                 )
             )
@@ -91,17 +91,17 @@ def build_counting_dataset(
     if neg_dir is not None:
         neg_rng = random.Random(f"{seed}-neg")
         for image_path in _sorted_jpgs(neg_dir, num_neg_images, neg_rng):
-            for category_name in CLASS_MAP.values():
+            for category in CLASS_MAP.values():
                 examples.append(
                     Example(
-                        id=f"neg/{image_path.stem}:{category_name}",
+                        id=f"neg/{image_path.stem}:{category.name}",
                         image_path=str(image_path),
-                        prompt=task.format_prompt(category_name=category_name),
+                        prompt=task.format_prompt(category),
                         expected=0,
                         metadata={
                             "dataset": "vhr10",
                             "split": "negative",
-                            "category": category_name,
+                            "category": category.name,
                         },
                     )
                 )
@@ -122,17 +122,17 @@ def build_existence_dataset(
 
     pos_rng = random.Random(f"{seed}-pos")
     for image_path in _sorted_jpgs(pos_dir, num_pos_images, pos_rng):
-        for category_name, count in _category_counts(image_path, gt_dir).items():
+        for category, count in _category_counts(image_path, gt_dir).items():
             examples.append(
                 Example(
-                    id=f"pos/{image_path.stem}:{category_name}",
+                    id=f"pos/{image_path.stem}:{category.name}",
                     image_path=str(image_path),
-                    prompt=task.format_prompt(category_name=category_name),
+                    prompt=task.format_prompt(category),
                     expected=count >= 1,
                     metadata={
                         "dataset": "vhr10",
                         "split": "positive",
-                        "category": category_name,
+                        "category": category.name,
                     },
                 )
             )
@@ -140,17 +140,17 @@ def build_existence_dataset(
     if neg_dir is not None:
         neg_rng = random.Random(f"{seed}-neg")
         for image_path in _sorted_jpgs(neg_dir, num_neg_images, neg_rng):
-            for category_name in CLASS_MAP.values():
+            for category in CLASS_MAP.values():
                 examples.append(
                     Example(
-                        id=f"neg/{image_path.stem}:{category_name}",
+                        id=f"neg/{image_path.stem}:{category.name}",
                         image_path=str(image_path),
-                        prompt=task.format_prompt(category_name=category_name),
+                        prompt=task.format_prompt(category),
                         expected=False,
                         metadata={
                             "dataset": "vhr10",
                             "split": "negative",
-                            "category": category_name,
+                            "category": category.name,
                         },
                     )
                 )

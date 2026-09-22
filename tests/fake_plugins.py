@@ -2,7 +2,7 @@
 
 from geo_vlms.backends.base import Generation
 from geo_vlms.example import Example
-from geo_vlms.tasks import Task
+from geo_vlms.tasks import Category, Task
 
 
 class EchoBackend:
@@ -19,6 +19,10 @@ class EchoBackend:
 
 def build_dataset(task: Task, seed: int, n: int) -> list[Example]:
     return [
-        Example(id=f"{i}", image_path=None, prompt=task.format_prompt("ship"))
+        Example(
+            id=f"{i}",
+            image_path=None,
+            prompt=task.format_prompt(Category("ship", "ships")),
+        )
         for i in range(n)
     ]

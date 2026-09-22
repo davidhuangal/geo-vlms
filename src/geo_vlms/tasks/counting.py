@@ -2,7 +2,7 @@
 
 import re
 
-from .base import Task
+from .base import Category, Task
 
 
 class Counting(Task[int]):
@@ -17,11 +17,10 @@ class Counting(Task[int]):
         else:
             return None
 
-    def format_prompt(self, category_name: str) -> str:
-        question = self._counting_question(category_name=category_name)
+    def format_prompt(self, category: Category) -> str:
         return (
-            f"{question}\nRespond with one integer only and no other prose or "
-            "punctuation. Assume this will be passed to a Python int(response)."
+            f"How many {category.plural} are there in this image? "
+            "Answer with a number only."
         )
 
     def score(self, prediction: int | None, expected: int) -> dict[str, float]:
@@ -45,6 +44,3 @@ class Counting(Task[int]):
             "signed_error": float(signed_error),
             "within_1": float(abs_error <= 1),
         }
-
-    def _counting_question(self, category_name: str) -> str:
-        return f"How many {category_name} objects are in this image?"
