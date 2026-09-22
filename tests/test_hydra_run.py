@@ -17,7 +17,7 @@ register_configs()
 
 def make_cfg(*overrides: str):
     """Compose like `hydra.main` does, so `${hydra:runtime.choices...}` resolves."""
-    with initialize(config_path="../conf", version_base="1.3"):
+    with initialize(config_path="../src/geo_vlms/conf", version_base="1.3"):
         cfg = compose(
             config_name="config", overrides=list(overrides), return_hydra_config=True
         )

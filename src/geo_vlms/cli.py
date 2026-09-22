@@ -38,7 +38,7 @@ def build_examples(cfg: DictConfig) -> list[Example]:
     return instantiate(cfg.dataset, task=TASKS[cfg.task](), seed=cfg.seed)
 
 
-@hydra.main(config_path="../conf", config_name="config", version_base="1.3")
+@hydra.main(config_path="conf", config_name="config", version_base="1.3")
 def main(cfg: DictConfig):
     out_path = Path(cfg.out)
     provenance_out = out_path.with_suffix(".meta.json")
