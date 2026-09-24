@@ -76,7 +76,7 @@ def main():
         metrics_df=metrics_df, group_by=args.groupby, metric_cols=metric_cols
     )
 
-    print(summary_df)
+    print(summary_df.to_string())
 
 
 if __name__ == "__main__":
