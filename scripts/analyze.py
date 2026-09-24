@@ -4,9 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 from geo_vlms.analysis import load_records, score_records, summarize
-from geo_vlms.tasks import Counting, Existence
-
-TASKS = {"counting": Counting, "existence": Existence}
+from geo_vlms.tasks import TASKS
 
 
 def parse_args() -> argparse.Namespace:
