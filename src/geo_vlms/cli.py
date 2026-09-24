@@ -54,16 +54,16 @@ def main(cfg: DictConfig):
 
     if (not cfg.overwrite and not cfg.resume) and out_path.exists():
         raise FileExistsError(
-            f"{cfg.out} already exists; choose a new --out path, "
-            "use --resume, or pass --overwrite"
+            f"{cfg.out} already exists; choose a new out= path, "
+            "pass resume=true, or pass overwrite=true"
         )
     if cfg.resume and not out_path.exists():
         raise FileNotFoundError(
-            f"{cfg.out} does not exist; --resume may only be used with an existing file"
+            f"{cfg.out} does not exist; resume=true needs an existing file"
         )
     if cfg.resume and not provenance_out.exists():
         raise FileNotFoundError(
-            f"{provenance_out} does not exist; --resume needs the original "
+            f"{provenance_out} does not exist; resume=true needs the original "
             "run's provenance file to validate the config"
         )
     out_path.parent.mkdir(parents=True, exist_ok=True)
