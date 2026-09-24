@@ -49,6 +49,11 @@ class HuggingFaceBackend:
             self.processor.tokenizer.pad_token_id
         )
 
+        template = str(self.processor.chat_template)
+        self._template_kwargs = (
+            {"enable_thinking": False} if "enable_thinking" in template else {}
+        )
+
     def _build_messages(
         self, prompt: str, images: list[str | bytes] | None = None
     ) -> list:
@@ -114,7 +119,7 @@ class HuggingFaceBackend:
             tokenize=True,
             return_dict=True,
             return_tensors="pt",
-            enable_thinking=False,
+            **self._template_kwargs,
         ).to(self.model.device, dtype=self.model.dtype)
 
         # Generate the raw tokens from the model
