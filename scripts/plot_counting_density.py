@@ -78,7 +78,7 @@ def bin_by_expected(pos: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def plot_scatter(pos: pd.DataFrame, model_name: str) -> Figure:
+def plot_scatter(pos: pd.DataFrame, model_name: str, dataset: str) -> Figure:
     """Scatter predicted against expected counts, dot area = record count."""
     pairs = pos.groupby(["expected", "predicted"]).size().reset_index(name="n")
 
@@ -132,7 +132,7 @@ def plot_scatter(pos: pd.DataFrame, model_name: str) -> Figure:
     ax.text(
         0,
         1.02,
-        f"{model_name} on VHR10 positives · dot area = number of records",
+        f"{model_name} on {dataset} positives · dot area = number of records",
         transform=ax.transAxes,
         fontsize=9.5,
         color=MUTED,
@@ -141,10 +141,13 @@ def plot_scatter(pos: pd.DataFrame, model_name: str) -> Figure:
     return fig
 
 
-def plot_bins(by_bin: pd.DataFrame, model_name: str) -> Figure:
-    """Bar panels of error and accuracy per expected-count bin."""
+def plot_bins(by_bin: pd.DataFrame, model_name: str, dataset: str) -> Figure:
+    """Bar panels of error and accuracy per non-empty expected-count bin."""
+    data = by_bin[by_bin["n"] > 0].reset_index()
+    data["expected_bin"] = data["expected_bin"].cat.remove_unused_categories()
     ticks = [
-        f"{label}\nn={n}" for label, n in zip(by_bin.index, by_bin["n"], strict=True)
+        f"{label}\nn={n}"
+        for label, n in zip(data["expected_bin"], data["n"], strict=True)
     ]
     panels = [
         ("mean_absolute_error", "Mean absolute error", ".2f"),
@@ -152,7 +155,6 @@ def plot_bins(by_bin: pd.DataFrame, model_name: str) -> Figure:
         ("exact_match", "Exact-match rate", ".0%"),
     ]
 
-    data = by_bin.reset_index()
     fig, axes = plt.subplots(1, 3, figsize=(12.5, 4), sharex=True)
     for ax, (column, title, spec) in zip(axes, panels, strict=True):
         sns.barplot(
@@ -185,7 +187,7 @@ def plot_bins(by_bin: pd.DataFrame, model_name: str) -> Figure:
     fig.text(
         0.02,
         0.905,
-        f"{model_name} on VHR10 positives, grouped by expected count",
+        f"{model_name} on {dataset} positives, grouped by expected count",
         fontsize=9.5,
         color=MUTED,
     )
@@ -215,10 +217,11 @@ def main():
     print(by_bin)
 
     model_name = records_df["model_name"].iloc[0]
+    dataset = records_df["dataset"].iloc[0]
     sns.set_theme(style="white", rc=STYLE)
     figures = {
-        "scatter": plot_scatter(pos, model_name),
-        "bins": plot_bins(by_bin, model_name),
+        "scatter": plot_scatter(pos, model_name, dataset),
+        "bins": plot_bins(by_bin, model_name, dataset),
     }
 
     if args.out is None:
