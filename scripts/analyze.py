@@ -4,9 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 from geo_vlms.analysis import load_records, score_records, summarize
-from geo_vlms.tasks import Counting, Existence
-
-TASKS = {"counting": Counting, "existence": Existence}
+from geo_vlms.tasks import TASKS
 
 
 def parse_args() -> argparse.Namespace:
@@ -78,7 +76,7 @@ def main():
         metrics_df=metrics_df, group_by=args.groupby, metric_cols=metric_cols
     )
 
-    print(summary_df)
+    print(summary_df.to_string())
 
 
 if __name__ == "__main__":

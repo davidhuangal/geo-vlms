@@ -23,7 +23,10 @@ def hf_mocks(monkeypatch):
         generation_config=SimpleNamespace(pad_token_id=None),
     )
     model.to.return_value = model
-    processor = Mock(tokenizer=SimpleNamespace(pad_token_id=42))
+    processor = Mock(
+        tokenizer=SimpleNamespace(pad_token_id=42),
+        chat_template="{% if enable_thinking %}<think>{% endif %}",
+    )
     load_model = Mock(return_value=model)
     load_processor = Mock(return_value=processor)
     bf16_supported = Mock(return_value=True)
@@ -190,6 +193,20 @@ def test_generate(backend, hf_mocks, images, token_options, new_tokens, expected
         decoded_ids, torch.tensor([new_tokens], dtype=torch.long)
     )
     assert kwargs == {"skip_special_tokens": True}
+
+
+def test_generate_omits_unused_thinking_switch(hf_mocks):
+    hf_mocks.processor.chat_template = "{{ messages }}"
+    backend = HuggingFaceBackend(MODEL_NAME, "cpu")
+    inputs = BatchFeature({"input_ids": torch.tensor([[10]])})
+    hf_mocks.processor.apply_chat_template.return_value = inputs
+    hf_mocks.model.generate.return_value = torch.tensor([[10, 20]])
+    hf_mocks.processor.batch_decode.return_value = ["hi"]
+
+    backend.generate("q", None)
+
+    _, kwargs = hf_mocks.processor.apply_chat_template.call_args
+    assert "enable_thinking" not in kwargs
 
 
 def test_describe(backend):
