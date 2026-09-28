@@ -57,6 +57,9 @@ def parse_args() -> argparse.Namespace:
 
 def prepare_positives(metrics_df: pd.DataFrame) -> pd.DataFrame:
     """Filter to valid positive records and derive per-record error columns."""
+    if metrics_df["expected"].map(lambda e: isinstance(e, list)).any():
+        raise ValueError("Range ground truth ([lo, hi]) is not supported yet")
+
     pos = metrics_df[
         (metrics_df["expected"] >= 1) & (metrics_df["valid"] == 1.0)
     ].copy()

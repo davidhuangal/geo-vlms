@@ -1,6 +1,7 @@
 """Counting Task"""
 
 import re
+from collections.abc import Sequence
 
 from .base import Category, Task
 
@@ -35,7 +36,10 @@ class Counting(Task[int]):
             "Answer with a number only."
         )
 
-    def score(self, prediction: int | None, expected: int) -> dict[str, float]:
+    def score(
+        self, prediction: int | None, expected: int | Sequence[int]
+    ) -> dict[str, float]:
+        """Score against a count, or a `[lo, hi]` range of acceptable counts."""
         # Every branch returns the same keys, so an aggregate over one column is
         # never silently computed over a different set of rows than another.
         if prediction is None:
@@ -48,13 +52,17 @@ class Counting(Task[int]):
                 "within_1": 0.0,
             }
 
-        abs_error = abs(prediction - expected)
-        signed_error = prediction - expected
+        lo, hi = expected if isinstance(expected, Sequence) else (expected, expected)
+        # Errors are measured to the nearest count in the range
+        target = min(max(prediction, lo), hi)
+
+        abs_error = abs(prediction - target)
+        signed_error = prediction - target
         # Undefined on empty images, so its mean is MAPE over non-empty ones
-        relative_error = abs_error / expected if expected > 0 else float("nan")
+        relative_error = abs_error / target if target > 0 else float("nan")
         return {
             "valid": 1.0,
-            "exact_match": float(prediction == expected),
+            "exact_match": float(abs_error == 0),
             "absolute_error": float(abs_error),
             "signed_error": float(signed_error),
             "relative_error": float(relative_error),

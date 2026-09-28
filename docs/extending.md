@@ -75,7 +75,7 @@ def build_dataset(task: Task, seed: int, data_dir: str, ...) -> list[Example]: .
 Rules:
 - `id` is unique and stable across runs. Resume keys on it.
 - `prompt` comes from `task.format_prompt(Category(name, plural))`.
-- `expected` is an `int` for `Counting` and a `bool` for `Existence`.
+- `expected` is an `int` or `[lo, hi]` range for `Counting` and a `bool` for `Existence`.
 - Raise on tasks you don't support.
 - Sampling uses `seed`, and file lists are sorted, so the order is stable.
 - `metadata` is JSON-serializable. Include `dataset` and `category`, which grouping and plots use.

@@ -22,11 +22,14 @@ Metrics per record:
 | Metric | Meaning |
 |---|---|
 | `valid` | 1 if parsed. |
-| `exact_match` | 1 if prediction equals expected. |
+| `exact_match` | 1 if prediction equals expected, or falls in its range. |
 | `absolute_error` | `abs(pred - expected)`. |
 | `signed_error` | `pred - expected`. Positive means overcount. |
 | `relative_error` | `absolute_error / expected`. NaN when expected is 0, so its mean is MAPE over non-empty rows. |
 | `within_1` | 1 if off by at most one. |
+
+`expected` can be a `[lo, hi]` range, as in DOTA tiles with difficult objects.
+Errors then use the nearest bound as `expected`.
 
 Invalid replies score 0 on `exact_match` and `within_1` and NaN on the error metrics.
 Means of error metrics are therefore over valid rows only.

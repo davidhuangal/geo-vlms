@@ -59,7 +59,7 @@ Records are flushed one at a time, so a crash loses at most the one in flight.
 | `id` | Stable example id. Resume keys on it. |
 | `image_path` | Relative to the working directory. `null` for `text_only`. |
 | `prompt` | Exact text sent. |
-| `expected` | Ground truth. `int` for counting, `bool` for existence. |
+| `expected` | Ground truth. `int` or `[lo, hi]` for counting, `bool` for existence. |
 | `metadata` | Dataset-specific. `analyze.py` flattens it into columns. |
 | `output` | Raw model reply, unparsed. |
 | `model_name` | Label from config. |

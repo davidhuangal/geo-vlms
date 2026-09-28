@@ -1,5 +1,6 @@
 import math
 
+import numpy as np
 import pytest
 
 from geo_vlms.tasks import Category, Counting
@@ -100,4 +101,34 @@ def test_counting_scoring(task):
 def test_counting_relative_error_undefined_on_empty(task):
     metrics = task.score(prediction=2, expected=0)
     assert metrics["absolute_error"] == 2.0
+    assert math.isnan(metrics["relative_error"])
+
+
+def test_counting_range_accepts_any_count_inside(task):
+    for prediction in (2, 3, 4):
+        metrics = task.score(prediction=prediction, expected=[2, 4])
+        assert metrics["exact_match"] == 1.0
+        assert metrics["absolute_error"] == 0.0
+
+
+def test_counting_range_errors_to_nearest_bound(task):
+    over = task.score(prediction=7, expected=[2, 4])
+    assert over["exact_match"] == 0.0
+    assert over["signed_error"] == 3.0
+    assert over["relative_error"] == 0.75
+    assert over["within_1"] == 0.0
+
+    under = task.score(prediction=1, expected=[2, 4])
+    assert under["signed_error"] == -1.0
+    assert under["relative_error"] == 0.5
+    assert under["within_1"] == 1.0
+
+
+def test_counting_accepts_numpy_ints(task):
+    assert task.score(prediction=3, expected=np.int64(3))["exact_match"] == 1.0
+
+
+def test_counting_range_from_zero(task):
+    metrics = task.score(prediction=0, expected=[0, 1])
+    assert metrics["exact_match"] == 1.0
     assert math.isnan(metrics["relative_error"])
