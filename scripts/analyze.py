@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from geo_vlms.analysis import load_records, score_records, summarize
+from geo_vlms.analysis import load_records, score_records, summarize, with_min_cover
 from geo_vlms.tasks import TASKS
 
 
@@ -45,6 +45,13 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Desired metrics to view.",
     )
+    parser.add_argument(
+        "--min-cover",
+        type=float,
+        required=False,
+        default=None,
+        help="Rescore counting only objects with this fraction in view.",
+    )
     return parser.parse_args()
 
 
@@ -61,6 +68,8 @@ def main():
     records_df = records_df.join(pd.json_normalize(records_df["metadata"])).drop(
         columns=["metadata"]
     )
+    if args.min_cover is not None:
+        records_df = with_min_cover(records_df, task, args.min_cover)
 
     metrics_df = score_records(
         records_df=records_df, parse=task.parse_response, score=task.score

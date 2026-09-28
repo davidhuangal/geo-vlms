@@ -43,7 +43,7 @@ Every run records its config, model revision, and software versions, so results 
 | | Supported |
 |---|---|
 | [Tasks](docs/tasks.md) | existence, counting |
-| [Datasets](docs/datasets.md) | NWPU VHR-10, DIOR, or [your own](docs/extending.md) |
+| [Datasets](docs/datasets.md) | NWPU VHR-10, DIOR, DOTA, or [your own](docs/extending.md) |
 | [Backends](docs/backends.md) | HuggingFace transformers, llama-server, or [your own](docs/extending.md) |
 
 ## Learn more

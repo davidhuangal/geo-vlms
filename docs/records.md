@@ -59,7 +59,7 @@ Records are flushed one at a time, so a crash loses at most the one in flight.
 | `id` | Stable example id. Resume keys on it. |
 | `image_path` | Relative to the working directory. `null` for `text_only`. |
 | `prompt` | Exact text sent. |
-| `expected` | Ground truth. `int` for counting, `bool` for existence. |
+| `expected` | Ground truth. `int` or `[lo, hi]` for counting, `bool` for existence. |
 | `metadata` | Dataset-specific. `analyze.py` flattens it into columns. |
 | `output` | Raw model reply, unparsed. |
 | `model_name` | Label from config. |
@@ -88,11 +88,14 @@ uv run scripts/analyze.py \
   --task counting \
   --records <records> \
   [--groupby col ...] \
-  [--metrics metric ...]
+  [--metrics metric ...] \
+  [--min-cover 0.5]
 ```
 
 `--groupby` groups by any record or `metadata` column, e.g. `split`, `category`, `expected`.
 `--metrics` picks metrics.
+`--min-cover` recomputes `expected` counting only objects with at least that fraction in view.
+It needs `coverage` metadata, which only DOTA records have.
 Metrics are defined in [tasks.md](tasks.md).
 
 Counting only:

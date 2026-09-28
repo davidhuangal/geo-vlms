@@ -100,10 +100,12 @@ def test_outside_backend_and_dataset_selected_through_config(tmp_path):
 def test_defaults_follow_dataset():
     vhr10 = make_cfg("dataset=vhr10")
     dior = make_cfg("dataset=dior")
+    dota = make_cfg("dataset=dota")
 
     assert vhr10.dataset.data_dir == "data/vhr10"
     assert "split" not in vhr10.dataset
     assert (dior.dataset.data_dir, dior.dataset.split) == ("data/dior", "test")
+    assert (dota.dataset.data_dir, dota.dataset.split) == ("data/dota", "val")
 
 
 @pytest.mark.parametrize(
@@ -113,6 +115,7 @@ def test_defaults_follow_dataset():
         ("dior", "dataset.no_neg=true"),
         ("vhr10", "dataset.split=val"),
         ("vhr10", "dataset.num_images=1"),
+        ("dota", "dataset.num_images=1"),
     ],
 )
 def test_rejects_keys_of_other_dataset(dataset, override):
