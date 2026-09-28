@@ -43,6 +43,16 @@ class DIORConfig:
 
 
 @dataclass
+class DOTAConfig:
+    _target_: str = "geo_vlms.datasets.dota.build_dataset"
+    data_dir: str = "data/dota"
+    split: str = "val"
+    num_tiles: int | None = None
+    categories: list[str] | None = None
+    min_cover: float = 0.5
+
+
+@dataclass
 class HuggingFaceConfig:
     _target_: str = "geo_vlms.backends.huggingface.HuggingFaceBackend"
     model_name: str = "${model_name}"
@@ -66,5 +76,6 @@ def register_configs() -> None:
     cs.store(name="base_config", node=Config)
     cs.store(group="dataset", name="base_vhr10", node=VHR10Config)
     cs.store(group="dataset", name="base_dior", node=DIORConfig)
+    cs.store(group="dataset", name="base_dota", node=DOTAConfig)
     cs.store(group="backend", name="base_huggingface", node=HuggingFaceConfig)
     cs.store(group="backend", name="base_llama_server", node=LlamaServerConfig)

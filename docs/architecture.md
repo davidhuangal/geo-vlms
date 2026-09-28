@@ -32,13 +32,14 @@ Records hold raw model output, so a parser or metric can change without rerunnin
 | `conf/` | Default config and the `backend/` and `dataset/` groups. |
 | `example.py` | `Example`: one (image, prompt, expected) question. |
 | `tasks/` | `Task` base, `Counting`, `Existence`. Prompt text, parsing, metrics. |
-| `datasets/` | `vhr10.py`, `dior.py`. Each exposes `build_dataset(data_dir, task, seed, ...)`. |
+| `datasets/` | `vhr10.py`, `dior.py`, `dota.py`. Each exposes `build_dataset(data_dir, task, seed, ...)`. |
 | `backends/` | `Backend` protocol, `Generation`, and the `huggingface` and `llama_server` implementations. |
 | `inference.py` | Loops examples through a backend and writes records. |
 | `runs.py` | Record writer and resume helpers. |
 | `provenance.py` | Builds the `.meta.json` sidecar. |
+| `coverage.py` | Ground truth from per-object coverage, shared by the DOTA loader and `analysis.py`. |
 | `analysis.py` | Loads, scores, and summarizes records with pandas. |
-| `scripts/` | `analyze.py`, `plot_counting_density.py`, `prepare_dior.py`. |
+| `scripts/` | `analyze.py`, `plot_counting_density.py`, `prepare_dior.py`, `prepare_dota.py`. |
 
 ## Units
 

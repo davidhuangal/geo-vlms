@@ -88,11 +88,14 @@ uv run scripts/analyze.py \
   --task counting \
   --records <records> \
   [--groupby col ...] \
-  [--metrics metric ...]
+  [--metrics metric ...] \
+  [--min-cover 0.5]
 ```
 
 `--groupby` groups by any record or `metadata` column, e.g. `split`, `category`, `expected`.
 `--metrics` picks metrics.
+`--min-cover` recomputes `expected` counting only objects with at least that fraction in view.
+It needs `coverage` metadata, which only DOTA records have.
 Metrics are defined in [tasks.md](tasks.md).
 
 Counting only:

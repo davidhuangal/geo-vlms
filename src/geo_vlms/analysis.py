@@ -5,6 +5,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from geo_vlms.coverage import expected_at
+from geo_vlms.tasks import Task
+
 
 def load_records(results_path: os.PathLike) -> pd.DataFrame:
     """Read a raw `.jsonl` of records back into a DataFrame."""
@@ -13,6 +16,24 @@ def load_records(results_path: os.PathLike) -> pd.DataFrame:
 
     records_df = pd.DataFrame(records)
 
+    return records_df
+
+
+def with_min_cover(
+    records_df: pd.DataFrame, task: Task, min_cover: float
+) -> pd.DataFrame:
+    """Recompute `expected` counting only objects at least `min_cover` in view."""
+    if "coverage" not in records_df.columns:
+        raise ValueError("--min-cover needs records with coverage metadata, like dota")
+
+    records_df = records_df.copy()
+    records_df["expected"] = [
+        expected_at(task, coverage, difficult, min_cover)
+        for coverage, difficult in zip(
+            records_df["coverage"], records_df["difficult"], strict=True
+        )
+    ]
+    records_df["min_cover"] = min_cover
     return records_df
 
 
