@@ -17,6 +17,22 @@ def test_counting_prompt_uses_plural(task):
     )
 
 
+def test_counting_custom_prompt():
+    task = Counting("Count the {plural}. One {name} counts as 1. Answer 0 if none.")
+
+    assert task.format_prompt(Category("ship", "ships")) == (
+        "Count the ships. One ship counts as 1. Answer 0 if none."
+    )
+
+
+@pytest.mark.parametrize(
+    "prompt", ["How many are there?", "How many {plural} {oops}?", "How many {plural"]
+)
+def test_counting_rejects_bad_prompt(prompt):
+    with pytest.raises(ValueError, match=r"(?i)prompt"):
+        Counting(prompt)
+
+
 def test_counting_parse_int(task):
     assert task.parse_response("50") == 50
 

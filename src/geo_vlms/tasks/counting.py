@@ -3,7 +3,7 @@
 import re
 from collections.abc import Sequence
 
-from .base import Category, Task
+from .base import Task
 
 NUMBER_WORDS = {
     word: value
@@ -15,6 +15,10 @@ NUMBER_WORDS = {
 
 
 class Counting(Task[int]):
+    default_prompt = (
+        "How many {plural} are there in this image? Answer with a number only."
+    )
+
     def parse_response(self, response: str) -> int | None:
         # \d+ matches one or more consecutive digits
         match = re.search(r"\d+", response.replace(",", ""))
@@ -29,12 +33,6 @@ class Counting(Task[int]):
             if word in NUMBER_WORDS:
                 return NUMBER_WORDS[word]
         return None
-
-    def format_prompt(self, category: Category) -> str:
-        return (
-            f"How many {category.plural} are there in this image? "
-            "Answer with a number only."
-        )
 
     def score(
         self, prediction: int | None, expected: int | Sequence[int]
