@@ -94,7 +94,7 @@ Built-in datasets register a schema in `config.py`.
 
 In-package only.
 
-1. Subclass `Task[PredT]` in `tasks/` and implement `format_prompt`, `parse_response`, and `score`.
+1. Subclass `Task[PredT]` in `tasks/`, set `default_prompt`, and implement `parse_response` and `score`.
 2. `score` returns the same keys on every branch. Use NaN, not a missing key, for undefined metrics.
 3. Register it in `tasks/__init__.py` `TASKS`.
 4. Teach each dataset builder what `expected` is for it.

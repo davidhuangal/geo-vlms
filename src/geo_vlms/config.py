@@ -16,6 +16,7 @@ class Config:
     )
     model_name: str = "unsloth/gemma-4-E2B-it-GGUF:Q4_K_M"
     task: str = "counting"
+    prompt: str | None = None
     seed: int = 0
     overwrite: bool = False
     resume: bool = False

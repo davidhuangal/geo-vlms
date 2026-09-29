@@ -16,6 +16,14 @@ def test_existence_prompt_uses_plural(task):
     )
 
 
+def test_existence_custom_prompt():
+    task = Existence("Is at least one {name} visible? Answer yes or no.")
+
+    assert task.format_prompt(Category("ship", "ships")) == (
+        "Is at least one ship visible? Answer yes or no."
+    )
+
+
 def test_existence_parse_words(task):
     assert task.parse_response("Yes") is True
     assert task.parse_response("No.") is False

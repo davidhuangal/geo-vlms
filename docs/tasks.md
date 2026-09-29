@@ -4,6 +4,23 @@ Select with `task=counting` (default) or `task=existence`.
 A task phrases the prompt, parses the reply, and scores it.
 Parsing and scoring run in `scripts/analyze.py`, not during inference.
 
+## Prompts
+
+Each task has a default prompt, shown below.
+Replace it with `prompt`, a template filled with `{plural}` and `{name}`:
+
+```bash
+uv run geo-vlms task=counting \
+  "prompt='How many {plural} are there in this image? Answer 0 if there are none.'"
+```
+
+Hydra needs the inner quotes, because `{` otherwise starts a dict.
+The template must use `{plural}` or `{name}`, and no other fields.
+Records store the filled-in prompt, and `.meta.json` stores the template.
+Resume refuses a changed prompt, since the dataset hash covers every prompt.
+The default output path doesn't include the prompt, so pass `out=` for each variant.
+Parsing doesn't change, so keep the answer format the task expects.
+
 ## Counting
 
 Prompt:

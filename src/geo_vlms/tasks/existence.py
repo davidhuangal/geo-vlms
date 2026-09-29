@@ -2,10 +2,12 @@
 
 import re
 
-from .base import Category, Task
+from .base import Task
 
 
 class Existence(Task[bool]):
+    default_prompt = "Are there any {plural} in this image? Answer yes or no."
+
     def parse_response(self, response: str) -> bool | None:
         match = re.search(r"\b(yes|no|[yn])\b", response, re.IGNORECASE)
 
@@ -19,6 +21,3 @@ class Existence(Task[bool]):
 
         correct = float(prediction == expected)
         return {"valid": 1.0, "correct": correct}
-
-    def format_prompt(self, category: Category) -> str:
-        return f"Are there any {category.plural} in this image? Answer yes or no."

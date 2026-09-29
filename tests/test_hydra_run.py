@@ -62,6 +62,26 @@ def test_text_only_drops_images(tmp_path):
     ]
 
 
+def test_prompt_override_reaches_examples(tmp_path):
+    (tmp_path / "dataset").mkdir()
+    (tmp_path / "dataset" / "tiny.yaml").write_text(
+        "_target_: fake_plugins.build_dataset\nn: 1\n"
+    )
+    cfg = make_cfg(
+        f"hydra.searchpath=[file://{tmp_path}]",
+        "dataset=tiny",
+        "prompt='How many {plural}? Answer 0 if there are none.'",
+    )
+
+    assert (
+        build_examples(cfg)[0].prompt == "How many ships? Answer 0 if there are none."
+    )
+
+
+def test_prompt_defaults_to_task_prompt():
+    assert make_cfg().prompt is None
+
+
 def test_backend_config_carries_model_name():
     cfg = make_cfg("backend=huggingface", "model_name=org/m")
 

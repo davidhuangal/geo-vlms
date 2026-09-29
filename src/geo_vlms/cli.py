@@ -36,7 +36,7 @@ def build_examples(cfg: DictConfig) -> list[Example]:
     """Call the dataset builder named by `cfg.dataset._target_`."""
     if cfg.task not in TASKS:
         raise ValueError(f"Unknown task {cfg.task}; tasks: {', '.join(TASKS)}")
-    examples = instantiate(cfg.dataset, task=TASKS[cfg.task](), seed=cfg.seed)
+    examples = instantiate(cfg.dataset, task=TASKS[cfg.task](cfg.prompt), seed=cfg.seed)
     if cfg.text_only:
         # Same prompts, ids and labels, no image: what the model answers from
         # the question alone.
