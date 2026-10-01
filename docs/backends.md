@@ -77,6 +77,20 @@ It doesn't follow `seed`, which only affects dataset sampling.
 
 Results are deterministic for a given GGUF, llama.cpp build, and server flags.
 `.meta.json` records `model_path`, `model_ftype`, `build_info`, `n_ctx`, and `total_slots` from `/props`.
+It doesn't record other server flags, so put any that change answers in `out=`.
+
+### Serving tips
+
+Datasets ask every category of an image back to back, so consecutive requests share the image.
+llama-server can reuse that part of the prompt instead of processing the image again.
+Models with sliding-window attention, like Gemma, only do this with `--swa-full`.
+On DOTA with Gemma 4 E4B it cut time per question from 0.37 s to 0.13 s.
+It changed about 3% of answers, through floating-point differences, so don't compare runs with and without it.
+Check reuse in the server log: after an image's first question, `prompt eval time` should cover only a few dozen tokens.
+
+On a shared machine, other users can reach a server on `localhost`.
+Start it with `--api-key-file <file>`, keep the file readable only by you, and set `GEO_VLMS_LLAMA_API_KEY` to its contents.
+With a key, llama-server only leaves `/health` open, so a check that the port is yours needs the key.
 
 ## Comparing backends
 
