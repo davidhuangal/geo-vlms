@@ -23,6 +23,8 @@ class Config:
     max_new_tokens: int = 64
     top_logprobs: int | None = None
     text_only: bool = False
+    shard: int = 0
+    num_shards: int = 1
 
 
 @dataclass
