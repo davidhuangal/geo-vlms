@@ -76,6 +76,16 @@ def test_api_key_from_env(monkeypatch):
     assert requests[0].headers["authorization"] == "Bearer secret"
 
 
+def test_api_key_sent_to_props(monkeypatch):
+    # llama-server with --api-key only leaves /health open
+    monkeypatch.setenv("GEO_VLMS_LLAMA_API_KEY", "secret")
+    requests = []
+    build_backend(requests)
+
+    props = next(r for r in requests if r.url.path == "/props")
+    assert props.headers["authorization"] == "Bearer secret"
+
+
 def test_api_key_defaults_to_unused(monkeypatch):
     monkeypatch.delenv("GEO_VLMS_LLAMA_API_KEY", raising=False)
     requests = []
