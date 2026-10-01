@@ -26,3 +26,17 @@ def build_dataset(task: Task, seed: int, n: int) -> list[Example]:
         )
         for i in range(n)
     ]
+
+
+def build_grouped(task: Task, seed: int, images: int) -> list[Example]:
+    categories = [Category("ship", "ships"), Category("plane", "planes")]
+    return [
+        Example(
+            id=f"{i}:{c.name}",
+            image_path=f"/{i}.jpg",
+            prompt=task.format_prompt(c),
+            expected=i,
+        )
+        for i in range(images)
+        for c in categories
+    ]

@@ -37,9 +37,10 @@ Records hold raw model output, so a parser or metric can change without rerunnin
 | `inference.py` | Loops examples through a backend and writes records. |
 | `runs.py` | Record writer and resume helpers. |
 | `provenance.py` | Builds the `.meta.json` sidecar. |
+| `shards.py` | Splits a run into shards and merges their records. |
 | `coverage.py` | Ground truth from per-object coverage, shared by the DOTA loader and `analysis.py`. |
 | `analysis.py` | Loads, scores, and summarizes records with pandas. |
-| `scripts/` | `analyze.py`, `plot_counting_density.py`, `prepare_dior.py`, `prepare_dota.py`. |
+| `scripts/` | `analyze.py`, `merge_shards.py`, `plot_counting_density.py`, `prepare_dior.py`, `prepare_dota.py`. |
 
 ## Units
 

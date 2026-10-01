@@ -37,6 +37,27 @@ When sweeping any other key, set `out=` per job, or the second job stops on the 
 A truncated last line from a hard kill is dropped and its example reruns.
 Records are flushed one at a time, so a crash loses at most the one in flight.
 
+## Sharding
+
+`shard=i num_shards=N` runs one of N parts of a run, e.g. one Slurm array task per GPU.
+Image k goes to shard `k % N`, with all its questions, so llama-server can reuse the image across them.
+Sharding needs each image's questions to be consecutive, as they are in the built-in datasets.
+`text_only` examples are split one by one.
+
+Shard i writes `<out stem>.shards/shard<i>of<N>.jsonl` and its `.meta.json`.
+`overwrite` and `resume` work per shard.
+
+When all shards finish, merge them:
+
+```bash
+uv run scripts/merge_shards.py --out <out> [--overwrite]
+```
+
+The merged records match an unsharded run's, in the same order.
+The merged sidecar has `num_shards=1`, the unsharded `dataset.sha256`, and a `shards` list.
+The merge refuses a missing, incomplete, or truncated shard, a config that differs across shards other than `shard`, `out`, or `backend.base_url`, a repeated example id, or an existing `<out>` without `--overwrite`.
+Shard files are left in place.
+
 ## Record fields
 
 ```json
@@ -80,6 +101,7 @@ Records are flushed one at a time, so a crash loses at most the one in flight.
 | `env` | Python, geo_vlms version, platform. |
 | `git` | Commit SHA and dirty flag, or `null` outside a checkout. |
 | `resumes` | One entry per resume: `command`, `started_at`. |
+| `shards` | Merged runs only. Per shard: `path`, `command`, `started_at`, `resumes`, `num_records`, `git`. |
 
 ## Analysis
 

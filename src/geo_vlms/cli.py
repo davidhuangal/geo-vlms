@@ -22,6 +22,7 @@ from geo_vlms.runs import (
     finished_ids,
     note_resume,
 )
+from geo_vlms.shards import check_shard, shard_path, take_shard
 from geo_vlms.tasks import TASKS
 
 register_configs()
@@ -46,7 +47,10 @@ def build_examples(cfg: DictConfig) -> list[Example]:
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.3")
 def main(cfg: DictConfig):
+    check_shard(cfg.shard, cfg.num_shards)
     out_path = Path(cfg.out)
+    if cfg.num_shards > 1:
+        out_path = shard_path(out_path, cfg.shard, cfg.num_shards)
     provenance_out = out_path.with_suffix(".meta.json")
 
     if cfg.overwrite and cfg.resume:
@@ -54,12 +58,12 @@ def main(cfg: DictConfig):
 
     if (not cfg.overwrite and not cfg.resume) and out_path.exists():
         raise FileExistsError(
-            f"{cfg.out} already exists; choose a new out= path, "
+            f"{out_path} already exists; choose a new out= path, "
             "pass resume=true, or pass overwrite=true"
         )
     if cfg.resume and not out_path.exists():
         raise FileNotFoundError(
-            f"{cfg.out} does not exist; resume=true needs an existing file"
+            f"{out_path} does not exist; resume=true needs an existing file"
         )
     if cfg.resume and not provenance_out.exists():
         raise FileNotFoundError(
@@ -75,6 +79,9 @@ def main(cfg: DictConfig):
         f"Built {len(examples)} {choices['dataset']} {cfg.task} examples. "
         f"Using {cfg.model_name} via {choices['backend']}."
     )
+    if cfg.num_shards > 1:
+        examples = take_shard(examples, cfg.shard, cfg.num_shards)
+        print(f"Shard {cfg.shard} of {cfg.num_shards}: {len(examples)} examples.")
 
     # ----- Backend -----
     backend = build_backend(cfg=cfg)
