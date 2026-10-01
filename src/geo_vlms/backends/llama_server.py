@@ -97,7 +97,9 @@ class LlamaServerBackend:
 
         # /props lives at the server root
         root = base_url.removesuffix("/v1")
-        response = self._http.get(f"{root}/props")
+        response = self._http.get(
+            f"{root}/props", headers={"Authorization": f"Bearer {api_key}"}
+        )
         response.raise_for_status()
         self._props = response.json()
 
