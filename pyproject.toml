@@ -10,6 +10,7 @@ dependencies = [
     "matplotlib>=3.11.1",
     "openai>=1,<3",
     "pandas>=3.0.3",
+    "pillow>=12.3.0",
     "seaborn>=0.13.2",
     "tqdm>=4.69.0",
 ]
@@ -19,7 +20,6 @@ hf = [
     "accelerate>=1.14.0",
     # Required at runtime by SmolVLM's processor, not imported by our code.
     "num2words>=0.5.14",
-    "pillow>=12.3.0",
     "torch>=2.13.0",
     "torchvision>=0.28.0",
     "transformers>=5.14.1",
