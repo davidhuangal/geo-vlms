@@ -1,6 +1,8 @@
+import io
 import json
 import shlex
 import sys
+from contextlib import redirect_stdout
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -45,8 +47,27 @@ def build_examples(cfg: DictConfig) -> list[Example]:
     return examples
 
 
+def find_missing(cfg: DictConfig, prefix: str = "") -> list[str]:
+    """Dotted keys of required values left unset, without resolving interpolations."""
+    missing = []
+    for key in cfg:
+        if OmegaConf.is_missing(cfg, key):
+            missing.append(f"{prefix}{key}")
+        elif not OmegaConf.is_interpolation(cfg, key) and OmegaConf.is_dict(cfg[key]):
+            missing += find_missing(cfg[key], prefix=f"{prefix}{key}.")
+    return missing
+
+
 @hydra.main(config_path="conf", config_name="config", version_base="1.3")
-def main(cfg: DictConfig):
+def run(cfg: DictConfig):
+    missing = find_missing(cfg)
+    if missing:
+        print(
+            f"Some required arguments are missing: {', '.join(missing)}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
     check_shard(cfg.shard, cfg.num_shards)
     out_path = Path(cfg.out)
     if cfg.num_shards > 1:
@@ -126,6 +147,38 @@ def main(cfg: DictConfig):
         top_logprobs=cfg.top_logprobs,
     )
     print(f"Wrote records to {out_path}")
+
+
+def hide_schemas(help_text: str) -> str:
+    """Drop `base_<x>` options from help lines that also list `<x>`."""
+    lines = []
+    for line in help_text.splitlines(keepends=True):
+        group, sep, options = line.partition(": ")
+        names = options.rstrip("\n").split(", ")
+        kept = [
+            n
+            for n in names
+            if not (n.startswith("base_") and n.removeprefix("base_") in names)
+        ]
+        if sep and len(kept) < len(names):
+            line = f"{group}: {', '.join(kept)}\n"
+        lines.append(line)
+    return "".join(lines)
+
+
+def main():
+    if len(sys.argv) == 1:
+        sys.argv.append("--help")
+    if not {"--help", "-h"} & set(sys.argv[1:]):
+        run()
+        return
+
+    buffer = io.StringIO()
+    try:
+        with redirect_stdout(buffer):
+            run()
+    finally:
+        print(hide_schemas(buffer.getvalue()), end="")
 
 
 if __name__ == "__main__":

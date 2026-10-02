@@ -11,6 +11,8 @@ Replace it with `prompt`, a template filled with `{plural}` and `{name}`:
 
 ```bash
 uv run geo-vlms task=counting \
+  backend=huggingface \
+  model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct \
   "prompt='How many {plural} are there in this image? Answer 0 if there are none.'"
 ```
 

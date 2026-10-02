@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from hydra.core.config_store import ConfigStore
-from omegaconf import OmegaConf
+from omegaconf import MISSING, OmegaConf
 
 
 @dataclass
@@ -14,7 +14,7 @@ class Config:
         "/${hydra:runtime.choices.backend}"
         "/records_seed${seed}${suffix_if:${text_only},_text_only}.jsonl"
     )
-    model_name: str = "unsloth/gemma-4-E2B-it-GGUF:Q4_K_M"
+    model_name: str = MISSING
     task: str = "counting"
     prompt: str | None = None
     seed: int = 0
