@@ -13,6 +13,7 @@ Replace it with `prompt`, a template filled with `{plural}` and `{name}`:
 uv run geo-vlms task=counting \
   backend=huggingface \
   model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct \
+  out=results/smolvlm2-counting-answer0.jsonl \
   "prompt='How many {plural} are there in this image? Answer 0 if there are none.'"
 ```
 
@@ -20,7 +21,7 @@ Hydra needs the inner quotes, because `{` otherwise starts a dict.
 The template must use `{plural}` or `{name}`, and no other fields.
 Records store the filled-in prompt, and `.meta.json` stores the template.
 Resume refuses a changed prompt, since the dataset hash covers every prompt.
-The default output path doesn't include the prompt, so pass `out=` for each variant.
+Pass a different `out=` for each prompt variant.
 Parsing doesn't change, so keep the answer format the task expects.
 
 ## Counting

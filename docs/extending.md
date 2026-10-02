@@ -16,6 +16,7 @@ my_conf/
 uv run geo-vlms --config-dir my_conf \
   backend=<name> \
   dataset=<name> \
+  out=<path> \
   ...
 ```
 

@@ -22,7 +22,8 @@ Every run records its config, model revision, and software versions, so results 
      model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct \
      task=counting \
      dataset.num_pos=5 \
-     dataset.num_neg=2
+     dataset.num_neg=2 \
+     out=results/smolvlm2-counting.jsonl
    ```
 
 4. Score the answers:
@@ -30,7 +31,7 @@ Every run records its config, model revision, and software versions, so results 
    ```bash
    uv run geo-vlms analyze \
      --task counting \
-     --records results/vhr10/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/huggingface/records_seed0.jsonl
+     --records results/smolvlm2-counting.jsonl
    ```
 
    ```text

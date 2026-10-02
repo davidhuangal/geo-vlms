@@ -110,7 +110,7 @@ Existence is `True` when any object counts, difficult or not.
 `metadata.raw_category` keeps the original name.
 `metadata.image_id`, `x0`, and `y0` locate the tile in its source image.
 `metadata` also has the tile's `image_source`, `gsd`, and `pad_frac`.
-`metadata.coverage` and `difficult` list every object of the category that overlaps the tile, so `analyze.py --min-cover` can rescore at another threshold without rerunning inference.
+`metadata.coverage` and `difficult` list every object of the category that overlaps the tile, so `geo-vlms analyze --min-cover` can rescore at another threshold without rerunning inference.
 
 | Key | Default | Meaning |
 |---|---|---|

@@ -6,18 +6,11 @@ Each run writes two files:
 
 ## Output path
 
-Default:
+`out=path.jsonl` is required.
+Parent directories are created as needed.
 
-```text
-results/<dataset>/<task>/<model_name>/<backend>/records_seed<seed>.jsonl
-```
-
-`text_only=true` sends the same prompts with no image and adds a `_text_only` suffix.
-`model_name` keeps its `/`, so `HuggingFaceTB/SmolVLM2-2.2B-Instruct` becomes two directories.
-Override with `out=path.jsonl`.
-
-A `--multirun` sweep over dataset, task, model, backend, seed, or `text_only` gets one path per job.
-When sweeping any other key, set `out=` per job, or the second job stops on the existing file.
+In a `--multirun` sweep, build `out` from every swept key, for example `'out=results/${model_name}/${task}-seed${seed}.jsonl'`.
+Otherwise two jobs share a path and the second stops on the existing file.
 
 ## Existing output
 
@@ -81,7 +74,7 @@ Shard files are left in place.
 | `image_path` | Relative to the working directory. `null` for `text_only`. |
 | `prompt` | Exact text sent. |
 | `expected` | Ground truth. `int` or `[lo, hi]` for counting, `bool` for existence. |
-| `metadata` | Dataset-specific. `analyze.py` flattens it into columns. |
+| `metadata` | Dataset-specific. `geo-vlms analyze` flattens it into columns. |
 | `output` | Raw model reply, unparsed. |
 | `model_name` | Label from config. |
 | `prompt_tokens`, `completion_tokens` | From the backend, if reported. |
