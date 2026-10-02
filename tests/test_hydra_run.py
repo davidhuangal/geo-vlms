@@ -29,22 +29,6 @@ def make_cfg(*overrides: str):
     return cfg
 
 
-def test_out_path_follows_config_group_choices():
-    cfg = make_cfg("dataset=dior", "backend=huggingface", "model_name=org/m")
-
-    assert cfg.out == "results/dior/counting/org/m/huggingface/records_seed0.jsonl"
-
-
-def test_text_only_suffixes_out_path():
-    cfg = make_cfg("dataset=dior", "backend=huggingface", "model_name=org/m")
-    text_only = make_cfg(
-        "dataset=dior", "backend=huggingface", "model_name=org/m", "text_only=true"
-    )
-
-    assert cfg.out.endswith("/records_seed0.jsonl")
-    assert text_only.out.endswith("/records_seed0_text_only.jsonl")
-
-
 def test_text_only_drops_images(tmp_path):
     (tmp_path / "dataset").mkdir()
     (tmp_path / "dataset" / "tiny.yaml").write_text(
@@ -168,9 +152,9 @@ def test_llama_server_requires_base_url():
 @pytest.mark.parametrize(
     "overrides, missing",
     [
-        (["backend=huggingface"], ["model_name"]),
-        (["backend=llama_server"], ["backend.base_url", "model_name"]),
-        (["backend=huggingface", "model_name=org/m"], []),
+        (["backend=huggingface"], ["out", "model_name"]),
+        (["backend=llama_server"], ["backend.base_url", "out", "model_name"]),
+        (["backend=huggingface", "model_name=org/m", "out=r.jsonl"], []),
     ],
 )
 def test_find_missing(overrides, missing):
@@ -204,7 +188,7 @@ def test_missing_values_exit_with_message(monkeypatch, capsys):
 
     assert exit_info.value.code == 2
     assert capsys.readouterr().err == (
-        "Some required arguments are missing: backend.base_url, model_name\n"
+        "Some required arguments are missing: backend.base_url, out, model_name\n"
     )
 
 

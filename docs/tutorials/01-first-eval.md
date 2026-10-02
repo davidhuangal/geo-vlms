@@ -19,17 +19,19 @@ uv run geo-vlms \
   model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct \
   task=counting \
   dataset.num_pos=5 \
-  dataset.num_neg=2
+  dataset.num_neg=2 \
+  out=results/smolvlm2-counting.jsonl
 ```
 
 This samples 5 positive and 2 negative images.
 It asks each image how many of each of the 10 categories it has, so there are 70 questions.
+`out` is required. Pick any path.
 
 ```text
 Built 70 vhr10 counting examples. Using HuggingFaceTB/SmolVLM2-2.2B-Instruct via huggingface.
-Wrote run provenance to results/vhr10/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/huggingface/records_seed0.meta.json
+Wrote run provenance to results/smolvlm2-counting.meta.json
 Running Inference.: 100%|████████| 70/70 [01:44<00:00,  1.50s/it]
-Wrote records to results/vhr10/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/huggingface/records_seed0.jsonl
+Wrote records to results/smolvlm2-counting.jsonl
 ```
 
 To print the composed config without running, add `--cfg job --resolve`.
@@ -37,7 +39,7 @@ To print the composed config without running, add `--cfg job --resolve`.
 ## Look at the output
 
 ```bash
-R=results/vhr10/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/huggingface/records_seed0.jsonl
+R=results/smolvlm2-counting.jsonl
 head -n 1 $R | python -m json.tool
 ```
 
@@ -104,7 +106,7 @@ Metric definitions: [tasks.md](../tasks.md).
 Running the same command again fails, because the records file exists:
 
 ```text
-FileExistsError: results/.../records_seed0.jsonl already exists; ...
+FileExistsError: results/smolvlm2-counting.jsonl already exists; ...
 ```
 
 Pass `overwrite=true` to replace it.

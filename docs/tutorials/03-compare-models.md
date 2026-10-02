@@ -13,18 +13,25 @@ uv run geo-vlms --multirun \
   task=counting,existence \
   text_only=false,true \
   dataset.num_pos=10 \
-  dataset.num_neg=3
+  dataset.num_neg=3 \
+  'out=results/${model_name}/${task}-text_only_${text_only}.jsonl'
 ```
 
 `--multirun` runs the cross product, 2 × 2 × 2 = 8 jobs, one after another.
 Each job asks the same 130 questions (13 images × 10 categories).
-Every job writes to its own path:
+`out` fills in each job's values, so every job writes to its own path:
 
 ```text
-results/vhr10/{counting,existence}/HuggingFaceTB/{SmolVLM-Instruct,SmolVLM2-2.2B-Instruct}/huggingface/
-  records_seed0.jsonl
-  records_seed0_text_only.jsonl
+results/HuggingFaceTB/{SmolVLM-Instruct,SmolVLM2-2.2B-Instruct}/
+  counting-text_only_False.jsonl
+  counting-text_only_True.jsonl
+  existence-text_only_False.jsonl
+  existence-text_only_True.jsonl
 ```
+
+In a sweep, `out` must include every swept key.
+If it leaves one out, two jobs share a path, and the second stops on "already exists" after the first finishes.
+The single quotes keep the shell from expanding `${...}`.
 
 `text_only=true` sends the same prompts with no image.
 It measures what the model answers from the question alone.
@@ -103,11 +110,11 @@ Counting only:
 
 ```bash
 uv run scripts/plot_counting_density.py \
-  --records results/vhr10/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/huggingface/records_seed0.jsonl \
+  --records results/HuggingFaceTB/SmolVLM2-2.2B-Instruct/counting-text_only_False.jsonl \
   --out figures/SmolVLM2
 ```
 
-This writes `records_seed0-scatter.png`, predicted vs expected counts, and `records_seed0-bins.png`, error by expected count.
+This writes `counting-text_only_False-scatter.png`, predicted vs expected counts, and `counting-text_only_False-bins.png`, error by expected count.
 Both cover positive rows only.
 Empty bins are left out of the bar plot.
 It also prints the binned table:

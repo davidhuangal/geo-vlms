@@ -21,7 +21,8 @@ Loads the model in-process with `AutoModelForImageTextToText`.
 ```bash
 uv run geo-vlms \
   backend=huggingface \
-  model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct
+  model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct \
+  out=results/smolvlm2.jsonl
 ```
 
 | Key | Default | Meaning |
@@ -52,7 +53,8 @@ llama-server \
 uv run geo-vlms \
   backend=llama_server \
   backend.base_url=http://localhost:8080/v1 \
-  model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct
+  model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct \
+  out=results/smolvlm2-llama.jsonl
 ```
 
 | Key | Default | Meaning |
@@ -113,7 +115,8 @@ docker run --rm \
   geo-vlms \
     backend=llama_server \
     backend.base_url=http://host:8080/v1 \
-    model_name=org/model-name
+    model_name=org/model-name \
+    out=results/model-name.jsonl
 ```
 
 The image has the core install only, so it holds no torch or GPU runtime.

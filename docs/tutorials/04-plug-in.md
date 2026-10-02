@@ -101,12 +101,13 @@ data_dir: data/mine
 PYTHONPATH=. uv run geo-vlms --config-dir my_conf \
   dataset=mine \
   backend=huggingface \
-  model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct
+  model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct \
+  out=results/mine-smolvlm2.jsonl
 ```
 
 ```text
 Built 6 mine counting examples. Using HuggingFaceTB/SmolVLM2-2.2B-Instruct via huggingface.
-Wrote records to results/mine/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/huggingface/records_seed0.jsonl
+Wrote records to results/mine-smolvlm2.jsonl
 ```
 
 `geo-vlms analyze` works on these records unchanged:
@@ -114,7 +115,7 @@ Wrote records to results/mine/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/hugg
 ```bash
 uv run geo-vlms analyze \
   --task counting \
-  --records results/mine/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/huggingface/records_seed0.jsonl \
+  --records results/mine-smolvlm2.jsonl \
   --groupby category \
   --metrics exact_match absolute_error
 ```
@@ -190,18 +191,19 @@ default: "0"
 PYTHONPATH=. uv run geo-vlms --config-dir my_conf \
   dataset=mine \
   backend=canned \
-  model_name=canned
+  model_name=canned \
+  out=results/mine-canned.jsonl
 ```
 
 ```text
 Built 6 mine counting examples. Using canned via canned.
-Wrote records to results/mine/counting/canned/canned/records_seed0.jsonl
+Wrote records to results/mine-canned.jsonl
 ```
 
 ```bash
 uv run geo-vlms analyze \
   --task counting \
-  --records results/mine/counting/canned/canned/records_seed0.jsonl \
+  --records results/mine-canned.jsonl \
   --groupby category \
   --metrics exact_match absolute_error
 ```

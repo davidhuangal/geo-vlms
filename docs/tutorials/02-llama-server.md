@@ -27,7 +27,8 @@ uv run geo-vlms \
   model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct \
   task=counting \
   dataset.num_pos=5 \
-  dataset.num_neg=2
+  dataset.num_neg=2 \
+  out=results/smolvlm2-counting-llama.jsonl
 ```
 
 ```text
@@ -36,26 +37,18 @@ Warning: model_name HuggingFaceTB/SmolVLM2-2.2B-Instruct does not match the serv
 ```
 
 The server decides which model runs.
-`model_name` only labels records and picks the output path.
-Here it's kept the same as tutorial 1 so both runs sit under one model directory:
-
-```text
-results/vhr10/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/
-  huggingface/records_seed0.jsonl
-  llama_server/records_seed0.jsonl
-```
-
+`model_name` only labels records.
+Here it's kept the same as tutorial 1 so both runs carry the same label.
 The warning is expected.
 The GGUF path, quantization, and llama.cpp build are recorded in `.meta.json` under `backend`.
 
 ## Compare
 
 ```bash
-D=results/vhr10/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct
-for backend in huggingface llama_server; do
+for records in results/smolvlm2-counting.jsonl results/smolvlm2-counting-llama.jsonl; do
   uv run geo-vlms analyze \
     --task counting \
-    --records $D/$backend/records_seed0.jsonl \
+    --records $records \
     --metrics valid exact_match absolute_error within_1
 done
 ```
@@ -72,9 +65,8 @@ Per-question agreement:
 from geo_vlms.analysis import load_records
 from geo_vlms.tasks import Counting
 
-d = "results/vhr10/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct"
-hf = load_records(f"{d}/huggingface/records_seed0.jsonl").set_index("id")
-ll = load_records(f"{d}/llama_server/records_seed0.jsonl").set_index("id")
+hf = load_records("results/smolvlm2-counting.jsonl").set_index("id")
+ll = load_records("results/smolvlm2-counting-llama.jsonl").set_index("id")
 parse = Counting().parse_response
 print(f"{(hf.output.map(parse) == ll.output.map(parse)).mean():.0%} of answers agree")
 ```
