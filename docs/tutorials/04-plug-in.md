@@ -109,7 +109,7 @@ Built 6 mine counting examples. Using HuggingFaceTB/SmolVLM2-2.2B-Instruct via h
 Wrote records to results/mine/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/huggingface/records_seed0.jsonl
 ```
 
-`analyze.py` works on these records unchanged:
+`geo-vlms analyze` works on these records unchanged:
 
 ```bash
 uv run geo-vlms analyze \

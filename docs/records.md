@@ -81,7 +81,7 @@ Shard files are left in place.
 | `image_path` | Relative to the working directory. `null` for `text_only`. |
 | `prompt` | Exact text sent. |
 | `expected` | Ground truth. `int` or `[lo, hi]` for counting, `bool` for existence. |
-| `metadata` | Dataset-specific. `analyze.py` flattens it into columns. |
+| `metadata` | Dataset-specific. `geo-vlms analyze` flattens it into columns. |
 | `output` | Raw model reply, unparsed. |
 | `model_name` | Label from config. |
 | `prompt_tokens`, `completion_tokens` | From the backend, if reported. |
