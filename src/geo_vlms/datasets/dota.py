@@ -33,7 +33,7 @@ SPLITS = ("train", "val")
 def load_prepared(
     data_dir: str | Path, split: str
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load the tile and object tables produced by scripts/prepare_dota.py."""
+    """Load the tile and object tables produced by `geo-vlms prepare-dota`."""
     if split not in SPLITS:
         raise ValueError(f"Unknown DOTA split {split!r}; choose from {SPLITS}")
 
@@ -42,7 +42,7 @@ def load_prepared(
     for path in paths:
         if not path.is_file():
             raise FileNotFoundError(
-                f"{path} does not exist; run scripts/prepare_dota.py first"
+                f"{path} does not exist; run geo-vlms prepare-dota first"
             )
 
     dtype = {"tile_id": str, "image_id": str}

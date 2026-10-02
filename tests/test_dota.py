@@ -12,13 +12,14 @@ from geo_vlms.datasets.dota import CATEGORIES, CLASS_MAP, build_dataset, load_pr
 from geo_vlms.tasks import Counting, Existence
 
 REAL_DATA_DIR = Path(__file__).parents[1] / "data" / "dota"
-PREPARE_SCRIPT = Path(__file__).parents[1] / "scripts" / "prepare_dota.py"
 
 
 def _prepare(data_dir: Path, tile_size: int = 100) -> subprocess.CompletedProcess:
     command = [
         sys.executable,
-        str(PREPARE_SCRIPT),
+        "-m",
+        "geo_vlms.cli",
+        "prepare-dota",
         "--data-dir",
         str(data_dir),
         "--tile-size",
@@ -289,7 +290,7 @@ def test_build_dataset_rejects_unknown_category(dota_dir):
 
 
 def test_load_prepared_requires_preparation(tmp_path):
-    with pytest.raises(FileNotFoundError, match=r"prepare_dota\.py"):
+    with pytest.raises(FileNotFoundError, match="geo-vlms prepare-dota"):
         load_prepared(tmp_path, "val")
 
 

@@ -39,11 +39,11 @@ SPLITS = ("train", "val", "test")
 
 
 def load_prepared(data_dir: str | Path) -> pd.DataFrame:
-    """Load the counts table produced by scripts/prepare_dior.py."""
+    """Load the counts table produced by `geo-vlms prepare-dior`."""
     counts_path = Path(data_dir) / "counts.csv"
     if not counts_path.is_file():
         raise FileNotFoundError(
-            f"{counts_path} does not exist; run scripts/prepare_dior.py first"
+            f"{counts_path} does not exist; run geo-vlms prepare-dior first"
         )
     return pd.read_csv(counts_path, dtype={"image_id": str})
 

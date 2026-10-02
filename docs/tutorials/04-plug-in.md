@@ -112,7 +112,7 @@ Wrote records to results/mine/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/hugg
 `analyze.py` works on these records unchanged:
 
 ```bash
-uv run scripts/analyze.py \
+uv run geo-vlms analyze \
   --task counting \
   --records results/mine/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/huggingface/records_seed0.jsonl \
   --groupby category \
@@ -199,7 +199,7 @@ Wrote records to results/mine/counting/canned/canned/records_seed0.jsonl
 ```
 
 ```bash
-uv run scripts/analyze.py \
+uv run geo-vlms analyze \
   --task counting \
   --records results/mine/counting/canned/canned/records_seed0.jsonl \
   --groupby category \

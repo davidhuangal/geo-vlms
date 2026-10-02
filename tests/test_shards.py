@@ -18,7 +18,6 @@ from geo_vlms.shards import (
 )
 
 TESTS = Path(__file__).parent
-MERGE_SCRIPT = TESTS.parent / "scripts" / "merge_shards.py"
 NUM_SHARDS = 3
 
 
@@ -106,7 +105,8 @@ def run_cli(conf_dir: Path, *overrides: str) -> subprocess.CompletedProcess:
 
 
 def merge(out: Path, *flags: str) -> subprocess.CompletedProcess:
-    command = [sys.executable, str(MERGE_SCRIPT), "--out", str(out), *flags]
+    command = [sys.executable, "-m", "geo_vlms.cli", "merge-shards", "--out", str(out)]
+    command += flags
     return subprocess.run(command, capture_output=True, text=True)
 
 

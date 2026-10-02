@@ -65,7 +65,7 @@ Field reference: [records.md](../records.md).
 ## Score
 
 ```bash
-uv run scripts/analyze.py \
+uv run geo-vlms analyze \
   --task counting \
   --records $R \
   --metrics valid exact_match absolute_error within_1
@@ -79,7 +79,7 @@ mean    1.0     0.671429        0.714286  0.842857
 Group by any record or metadata column:
 
 ```bash
-uv run scripts/analyze.py \
+uv run geo-vlms analyze \
   --task counting \
   --records $R \
   --groupby category \

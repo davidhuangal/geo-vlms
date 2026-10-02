@@ -34,7 +34,7 @@ On a cluster, run one `geo-vlms` per configuration, such as one Slurm array task
 ## Counting
 
 ```bash
-uv run scripts/analyze.py \
+uv run geo-vlms analyze \
   --task counting \
   --records <records> \
   --metrics valid exact_match absolute_error within_1
@@ -51,7 +51,7 @@ Exact match is about equal.
 SmolVLM's error is higher because of one record:
 
 ```bash
-uv run scripts/analyze.py \
+uv run geo-vlms analyze \
   --task counting \
   --records <SmolVLM records> \
   --groupby split \
@@ -79,7 +79,7 @@ Only 13 of the 130 have an object present.
 Always group by `expected`:
 
 ```bash
-uv run scripts/analyze.py \
+uv run geo-vlms analyze \
   --task existence \
   --records <records> \
   --groupby expected \

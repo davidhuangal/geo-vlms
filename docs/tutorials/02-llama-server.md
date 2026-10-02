@@ -53,7 +53,7 @@ The GGUF path, quantization, and llama.cpp build are recorded in `.meta.json` un
 ```bash
 D=results/vhr10/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct
 for backend in huggingface llama_server; do
-  uv run scripts/analyze.py \
+  uv run geo-vlms analyze \
     --task counting \
     --records $D/$backend/records_seed0.jsonl \
     --metrics valid exact_match absolute_error within_1

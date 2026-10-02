@@ -50,7 +50,7 @@ Shard i writes `<out stem>.shards/shard<i>of<N>.jsonl` and its `.meta.json`.
 When all shards finish, merge them:
 
 ```bash
-uv run scripts/merge_shards.py --out <out> [--overwrite]
+uv run geo-vlms merge-shards --out <out> [--overwrite]
 ```
 
 The merged records match an unsharded run's, in the same order.
@@ -106,7 +106,7 @@ Shard files are left in place.
 ## Analysis
 
 ```bash
-uv run scripts/analyze.py \
+uv run geo-vlms analyze \
   --task counting \
   --records <records> \
   [--groupby col ...] \

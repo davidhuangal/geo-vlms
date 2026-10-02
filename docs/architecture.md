@@ -16,7 +16,7 @@ geo-vlms key=value ...
   │
   └─ run_inference: backend.generate() per Example  →  <out> (JSONL)
 
-scripts/analyze.py <out>
+geo-vlms analyze --records <out>
   └─ Task.parse_response + Task.score per record  →  summary table
 ```
 
@@ -27,7 +27,8 @@ Records hold raw model output, so a parser or metric can change without rerunnin
 
 | Path | Role |
 |---|---|
-| `cli.py` | Entry point. Builds dataset and backend, writes provenance, runs inference. Handles `overwrite` and `resume`. |
+| `cli.py` | Entry point. Dispatches subcommands, otherwise builds dataset and backend, writes provenance, runs inference. Handles `overwrite` and `resume`. |
+| `commands/` | `geo-vlms` subcommands: `analyze`, `merge-shards`, `prepare-dior`, `prepare-dota`. |
 | `config.py` | Structured config schemas and Hydra registration. |
 | `conf/` | Default config and the `backend/` and `dataset/` groups. |
 | `example.py` | `Example`: one (image, prompt, expected) question. |
@@ -40,7 +41,7 @@ Records hold raw model output, so a parser or metric can change without rerunnin
 | `shards.py` | Splits a run into shards and merges their records. |
 | `coverage.py` | Ground truth from per-object coverage, shared by the DOTA loader and `analysis.py`. |
 | `analysis.py` | Loads, scores, and summarizes records with pandas. |
-| `scripts/` | `analyze.py`, `merge_shards.py`, `plot_counting_density.py`, `prepare_dior.py`, `prepare_dota.py`. |
+| `scripts/` | `plot_counting_density.py`. |
 
 ## Units
 

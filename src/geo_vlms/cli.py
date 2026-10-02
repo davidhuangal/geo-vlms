@@ -13,6 +13,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from geo_vlms.backends import Backend
+from geo_vlms.commands import analyze, merge_shards, prepare_dior, prepare_dota
 from geo_vlms.config import register_configs
 from geo_vlms.example import Example
 from geo_vlms.inference import run_inference
@@ -28,6 +29,13 @@ from geo_vlms.shards import check_shard, image_groups, shard_path, take_shard
 from geo_vlms.tasks import TASKS
 
 register_configs()
+
+COMMANDS = {
+    "analyze": analyze.main,
+    "merge-shards": merge_shards.main,
+    "prepare-dior": prepare_dior.main,
+    "prepare-dota": prepare_dota.main,
+}
 
 
 def build_backend(cfg: DictConfig) -> Backend:
@@ -183,7 +191,18 @@ def hide_schemas(help_text: str) -> str:
 
 
 def main():
-    if len(sys.argv) == 1:
+    args = sys.argv[1:]
+    if args and args[0] in COMMANDS:
+        COMMANDS[args[0]](args[1:] or ["--help"])
+        return
+    if args and "=" not in args[0] and not args[0].startswith(("-", "+", "~")):
+        print(
+            f"Unknown command '{args[0]}'. Commands: {', '.join(COMMANDS)}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    if not args:
         sys.argv.append("--help")
     if not {"--help", "-h"} & set(sys.argv[1:]):
         run()

@@ -2,7 +2,7 @@
 
 Select with `task=counting` (default) or `task=existence`.
 A task phrases the prompt, parses the reply, and scores it.
-Parsing and scoring run in `scripts/analyze.py`, not during inference.
+Parsing and scoring run in `geo-vlms analyze`, not during inference.
 
 ## Prompts
 
@@ -73,7 +73,7 @@ Parsing takes the first standalone `yes`, `no`, `y`, or `n`, case-insensitive.
 Group by `expected` to split recall on present objects from accuracy on absent ones:
 
 ```bash
-uv run scripts/analyze.py \
+uv run geo-vlms analyze \
   --task existence \
   --records <records> \
   --groupby expected

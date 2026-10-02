@@ -7,9 +7,10 @@ from geo_vlms.analysis import load_records, score_records, summarize, with_min_c
 from geo_vlms.tasks import TASKS
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str]) -> argparse.Namespace:
     """Parse CLI for analysis."""
     parser = argparse.ArgumentParser(
+        prog="geo-vlms analyze",
         description="Analyze records from a VLM inference job.",
     )
     parser.add_argument(
@@ -52,11 +53,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Rescore counting only objects with this fraction in view.",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
-def main():
-    args = parse_args()
+def main(argv: list[str]):
+    args = parse_args(argv)
     task = TASKS[args.task]()
 
     records_path = Path(args.records)
@@ -86,7 +87,3 @@ def main():
     )
 
     print(summary_df.to_string())
-
-
-if __name__ == "__main__":
-    main()
