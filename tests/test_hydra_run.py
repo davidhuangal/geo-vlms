@@ -206,3 +206,24 @@ def test_missing_values_exit_with_message(monkeypatch, capsys):
     assert capsys.readouterr().err == (
         "Some required arguments are missing: backend.base_url, model_name\n"
     )
+
+
+def test_empty_dataset_exits_before_backend(tmp_path, monkeypatch, capsys):
+    (tmp_path / "dataset").mkdir()
+    (tmp_path / "dataset" / "empty.yaml").write_text(
+        "_target_: fake_plugins.build_dataset\nn: 0\n"
+    )
+    out = tmp_path / "results" / "records.jsonl"
+    argv = ["geo-vlms", f"--config-dir={tmp_path}", "dataset=empty"]
+    argv += ["backend=llama_server", "backend.base_url=http://unreachable"]
+    monkeypatch.setattr(sys, "argv", [*argv, "model_name=org/m", f"out={out}"])
+
+    with pytest.raises(SystemExit) as exit_info:
+        main()
+
+    assert exit_info.value.code == 1
+    assert capsys.readouterr().err == (
+        "Dataset creation resulted in 0 counting examples from empty. "
+        "Check that the dataset is available and configured correctly.\n"
+    )
+    assert not out.parent.exists()

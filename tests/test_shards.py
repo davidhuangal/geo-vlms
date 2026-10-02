@@ -288,6 +288,24 @@ def test_resume_finishes_one_shard(runs, out):
     assert read_jsonl(out) == read_jsonl(unsharded)
 
 
+def test_empty_shard_warns_and_merges(runs, tmp_path):
+    conf, _, _ = runs
+    out = tmp_path / "records.jsonl"
+
+    results = [
+        run_cli(conf, f"out={out}", "dataset.images=2", f"shard={i}", "num_shards=3")
+        for i in range(3)
+    ]
+
+    assert [r.returncode for r in results] == [0, 0, 0]
+    assert "Warning: shard 2 of 3 is empty; num_shards exceeds the 2 images." in (
+        results[2].stderr
+    )
+    assert "Warning" not in results[0].stderr
+    merge(out).check_returncode()
+    assert len(read_jsonl(out)) == 4
+
+
 def test_cli_rejects_bad_shard(runs, tmp_path):
     conf, _, _ = runs
 

@@ -24,7 +24,7 @@ from geo_vlms.runs import (
     finished_ids,
     note_resume,
 )
-from geo_vlms.shards import check_shard, shard_path, take_shard
+from geo_vlms.shards import check_shard, image_groups, shard_path, take_shard
 from geo_vlms.tasks import TASKS
 
 register_configs()
@@ -91,18 +91,33 @@ def run(cfg: DictConfig):
             f"{provenance_out} does not exist; resume=true needs the original "
             "run's provenance file to validate the config"
         )
-    out_path.parent.mkdir(parents=True, exist_ok=True)
 
     # ----- Dataset Creation -----
     examples = build_examples(cfg=cfg)
     choices = HydraConfig.get().runtime.choices
+    if not examples:
+        print(
+            f"Dataset creation resulted in 0 {cfg.task} examples from "
+            f"{choices['dataset']}. Check that the dataset is available and "
+            "configured correctly.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     print(
         f"Built {len(examples)} {choices['dataset']} {cfg.task} examples. "
         f"Using {cfg.model_name} via {choices['backend']}."
     )
     if cfg.num_shards > 1:
+        num_images = len(image_groups([e.image_path for e in examples]))
         examples = take_shard(examples, cfg.shard, cfg.num_shards)
         print(f"Shard {cfg.shard} of {cfg.num_shards}: {len(examples)} examples.")
+        if not examples:
+            print(
+                f"Warning: shard {cfg.shard} of {cfg.num_shards} is empty; "
+                f"num_shards exceeds the {num_images} images.",
+                file=sys.stderr,
+            )
 
     # ----- Backend -----
     backend = build_backend(cfg=cfg)
@@ -132,6 +147,7 @@ def run(cfg: DictConfig):
         examples = [e for e in examples if e.id not in done]
         provenance = note_resume(prev_meta, command=command, started_at=started_at)
 
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(provenance_out, "w") as f:
         json.dump(provenance, f, indent=4)
     print(f"Wrote run provenance to {provenance_out}")
