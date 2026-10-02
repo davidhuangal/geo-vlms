@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import pytest
@@ -8,7 +9,7 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf, open_dict
 from omegaconf.errors import MissingMandatoryValue
 
-from geo_vlms.cli import build_examples
+from geo_vlms.cli import build_examples, find_missing, hide_schemas, main
 from geo_vlms.config import register_configs
 from geo_vlms.inference import run_inference
 from geo_vlms.tasks import TASKS
@@ -162,3 +163,46 @@ def test_llama_server_requires_base_url():
 
     with pytest.raises(MissingMandatoryValue):
         OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
+
+
+@pytest.mark.parametrize(
+    "overrides, missing",
+    [
+        (["backend=huggingface"], ["model_name"]),
+        (["backend=llama_server"], ["backend.base_url", "model_name"]),
+        (["backend=huggingface", "model_name=org/m"], []),
+    ],
+)
+def test_find_missing(overrides, missing):
+    assert find_missing(make_cfg(*overrides)) == missing
+
+
+def test_bare_run_prints_help(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["geo-vlms"])
+
+    with pytest.raises(SystemExit) as exit_info:
+        main()
+
+    assert exit_info.value.code == 0
+    out = capsys.readouterr().out
+    assert "backend: huggingface, llama_server\n" in out
+    assert "dataset: dior, dota, vhr10\n" in out
+    assert "base_" not in out
+
+
+def test_hide_schemas_keeps_unpaired_base():
+    text = "backend: base_hf, base_mine, hf\nPick: one\n"
+
+    assert hide_schemas(text) == "backend: base_mine, hf\nPick: one\n"
+
+
+def test_missing_values_exit_with_message(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["geo-vlms", "backend=llama_server"])
+
+    with pytest.raises(SystemExit) as exit_info:
+        main()
+
+    assert exit_info.value.code == 2
+    assert capsys.readouterr().err == (
+        "Some required arguments are missing: backend.base_url, model_name\n"
+    )

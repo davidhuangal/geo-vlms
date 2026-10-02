@@ -12,3 +12,13 @@ hydra:
   output_subdir: null
   run:
     dir: .
+  help:
+    app_name: geo-vlms
+    template: |
+      geo-vlms evaluates vision-language models on remote-sensing imagery.
+
+      Pick one option per group (group=option):
+
+      $APP_CONFIG_GROUPS
+      Example:
+        geo-vlms backend=huggingface model_name=HuggingFaceTB/SmolVLM2-2.2B-Instruct task=counting
