@@ -102,9 +102,10 @@ def prepare_dataset(data_dir: str | Path, out_path: str | Path) -> tuple[int, in
     return len(expected_ids), row_count
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Prepare DIOR counts for existence and counting evaluation."
+        prog="geo-vlms prepare-dior",
+        description="Prepare DIOR counts for existence and counting evaluation.",
     )
     parser.add_argument("--data-dir", default="data/dior", help="Raw DIOR root.")
     parser.add_argument(
@@ -113,15 +114,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Output CSV. Default: <data-dir>/counts.csv",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
-def main() -> None:
-    args = parse_args()
+def main(argv: list[str]) -> None:
+    args = parse_args(argv)
     out_path = Path(args.out) if args.out else Path(args.data_dir) / "counts.csv"
     images, rows = prepare_dataset(args.data_dir, out_path)
     print(f"Prepared {rows} rows for {images} images in {out_path}")
-
-
-if __name__ == "__main__":
-    main()

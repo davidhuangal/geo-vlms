@@ -271,9 +271,10 @@ def prepare_split(
     return tile_count, object_count
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Tile DOTA-v1.5 for existence and counting evaluation."
+        prog="geo-vlms prepare-dota",
+        description="Tile DOTA-v1.5 for existence and counting evaluation.",
     )
     parser.add_argument("--data-dir", default="data/dota", help="Raw DOTA root.")
     parser.add_argument(
@@ -283,17 +284,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--workers", type=int, default=None, help="Processes. Default: CPU count."
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
-def main() -> None:
-    args = parse_args()
+def main(argv: list[str]) -> None:
+    args = parse_args(argv)
     for split in args.splits:
         tiles, objects = prepare_split(
             args.data_dir, split, args.tile_size, args.workers
         )
         print(f"Prepared {tiles} {split} tiles with {objects} object rows")
-
-
-if __name__ == "__main__":
-    main()

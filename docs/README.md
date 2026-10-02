@@ -15,6 +15,6 @@
 | [Tasks](tasks.md) | Prompts, parsing, metrics. |
 | [Datasets](datasets.md) | VHR-10 and DIOR layout, knobs, label noise. |
 | [Backends](backends.md) | HuggingFace, llama-server, install extras, container. |
-| [Records](records.md) | Output paths, record and sidecar fields, resume, analysis scripts. |
+| [Records](records.md) | Output paths, record and sidecar fields, resume, analysis. |
 | [Reproducibility](reproducibility.md) | What keeps runs deterministic and how to check. |
 | [Extending](extending.md) | Adding a backend, dataset, or task. |

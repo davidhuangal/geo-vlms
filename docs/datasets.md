@@ -51,7 +51,7 @@ data/dior/
 Prepare once:
 
 ```bash
-uv run scripts/prepare_dior.py --data-dir data/dior
+uv run geo-vlms prepare-dior --data-dir data/dior
 ```
 
 This validates the download and writes `data/dior/counts.csv`, one row per (image, category).
@@ -85,7 +85,7 @@ data/dota/
 Prepare once:
 
 ```bash
-uv run scripts/prepare_dota.py --data-dir data/dota
+uv run geo-vlms prepare-dota --data-dir data/dota
 ```
 
 This cuts each image into 896 px tiles with no overlap and writes them to `data/dota/tiles/<split>/`.

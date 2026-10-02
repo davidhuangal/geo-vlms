@@ -28,7 +28,7 @@ Every run records its config, model revision, and software versions, so results 
 4. Score the answers:
 
    ```bash
-   uv run scripts/analyze.py \
+   uv run geo-vlms analyze \
      --task counting \
      --records results/vhr10/counting/HuggingFaceTB/SmolVLM2-2.2B-Instruct/huggingface/records_seed0.jsonl
    ```

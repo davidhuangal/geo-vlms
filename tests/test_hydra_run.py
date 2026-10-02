@@ -9,7 +9,7 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf, open_dict
 from omegaconf.errors import MissingMandatoryValue
 
-from geo_vlms.cli import build_examples, find_missing, hide_schemas, main
+from geo_vlms.cli import COMMANDS, build_examples, find_missing, hide_schemas, main
 from geo_vlms.config import register_configs
 from geo_vlms.inference import run_inference
 from geo_vlms.tasks import TASKS
@@ -227,3 +227,34 @@ def test_empty_dataset_exits_before_backend(tmp_path, monkeypatch, capsys):
         "Check that the dataset is available and configured correctly.\n"
     )
     assert not out.parent.exists()
+
+
+def test_help_lists_every_command(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["geo-vlms"])
+
+    with pytest.raises(SystemExit):
+        main()
+
+    out = capsys.readouterr().out
+    assert all(f"\n  {name}  " in out for name in COMMANDS)
+
+
+@pytest.mark.parametrize("name", ["analyze", "merge-shards", "prepare-dior"])
+def test_bare_command_prints_its_help(name, monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["geo-vlms", name])
+
+    with pytest.raises(SystemExit) as exit_info:
+        main()
+
+    assert exit_info.value.code == 0
+    assert capsys.readouterr().out.startswith(f"usage: geo-vlms {name} ")
+
+
+def test_unknown_command_exits(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["geo-vlms", "analyse"])
+
+    with pytest.raises(SystemExit) as exit_info:
+        main()
+
+    assert exit_info.value.code == 2
+    assert capsys.readouterr().err.startswith("Unknown command 'analyse'. Commands: ")

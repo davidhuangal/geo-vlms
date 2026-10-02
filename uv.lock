@@ -383,6 +383,7 @@ dependencies = [
     { name = "matplotlib" },
     { name = "openai" },
     { name = "pandas" },
+    { name = "pillow" },
     { name = "seaborn" },
     { name = "tqdm" },
 ]
@@ -391,7 +392,6 @@ dependencies = [
 hf = [
     { name = "accelerate" },
     { name = "num2words" },
-    { name = "pillow" },
     { name = "torch", version = "2.13.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
     { name = "torch", version = "2.13.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
     { name = "torchvision", version = "0.28.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
@@ -417,7 +417,7 @@ requires-dist = [
     { name = "num2words", marker = "extra == 'hf'", specifier = ">=0.5.14" },
     { name = "openai", specifier = ">=1,<3" },
     { name = "pandas", specifier = ">=3.0.3" },
-    { name = "pillow", marker = "extra == 'hf'", specifier = ">=12.3.0" },
+    { name = "pillow", specifier = ">=12.3.0" },
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "torch", marker = "sys_platform == 'linux' and extra == 'hf'", specifier = ">=2.13.0", index = "https://download.pytorch.org/whl/cpu" },
     { name = "torch", marker = "sys_platform != 'linux' and extra == 'hf'", specifier = ">=2.13.0" },

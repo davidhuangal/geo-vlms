@@ -15,13 +15,13 @@ from geo_vlms.datasets.dior import (
 from geo_vlms.tasks import Counting, Existence
 
 REAL_DATA_DIR = Path(__file__).parents[1] / "data" / "dior"
-PREPARE_SCRIPT = Path(__file__).parents[1] / "scripts" / "prepare_dior.py"
 
 
 def _prepare(
     data_dir: Path, out_path: Path | None = None
 ) -> subprocess.CompletedProcess:
-    command = [sys.executable, str(PREPARE_SCRIPT), "--data-dir", str(data_dir)]
+    command = [sys.executable, "-m", "geo_vlms.cli", "prepare-dior"]
+    command += ["--data-dir", str(data_dir)]
     if out_path is not None:
         command.extend(["--out", str(out_path)])
     return subprocess.run(command, check=True, capture_output=True, text=True)
@@ -151,7 +151,7 @@ def test_build_existence_dataset(dior_dir):
 
 
 def test_load_prepared_requires_preparation(tmp_path):
-    with pytest.raises(FileNotFoundError, match=r"prepare_dior\.py"):
+    with pytest.raises(FileNotFoundError, match="geo-vlms prepare-dior"):
         load_prepared(tmp_path)
 
 
