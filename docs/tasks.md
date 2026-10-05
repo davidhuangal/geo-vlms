@@ -75,7 +75,6 @@ Group by `expected` to split recall on present objects from accuracy on absent o
 
 ```bash
 uv run geo-vlms analyze \
-  --task existence \
   --records <records> \
   --groupby expected
 ```

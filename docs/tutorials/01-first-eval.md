@@ -68,7 +68,6 @@ Field reference: [records.md](../records.md).
 
 ```bash
 uv run geo-vlms analyze \
-  --task counting \
   --records $R \
   --metrics valid exact_match absolute_error within_1
 ```
@@ -82,7 +81,6 @@ Group by any record or metadata column:
 
 ```bash
 uv run geo-vlms analyze \
-  --task counting \
   --records $R \
   --groupby category \
   --metrics exact_match signed_error

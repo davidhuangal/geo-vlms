@@ -100,13 +100,16 @@ Shard files are left in place.
 
 ```bash
 uv run geo-vlms analyze \
-  --task counting \
+  [--task counting] \
   --records <records> \
   [--groupby col ...] \
   [--metrics metric ...] \
   [--min-cover 0.5]
 ```
 
+The task comes from `<records stem>.meta.json`.
+A `--task` that disagrees with it is an error.
+Without a `.meta.json`, `--task` is required, and a wrong one gives wrong results.
 `--groupby` groups by any record or `metadata` column, e.g. `split`, `category`, `expected`.
 `--metrics` picks metrics.
 `--min-cover` recomputes `expected` counting only objects with at least that fraction in view.
