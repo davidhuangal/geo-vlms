@@ -9,7 +9,7 @@ from geo_vlms.commands.analyze import main
 def records(tmp_path):
     path = tmp_path / "run.jsonl"
     record = {"id": "0", "expected": 3, "metadata": {"category": "ship"}}
-    path.write_text(json.dumps(record | {"output": "3"}) + "\n")
+    path.write_text(json.dumps(record | {"output": "3", "prompt_tokens": 9}) + "\n")
     return path
 
 
@@ -71,3 +71,47 @@ def test_meta_without_task_exits(records, capsys):
 
     assert exit_info.value.code == 2
     assert capsys.readouterr().err.endswith("run.meta.json has no args.task\n")
+
+
+def test_metric_typo_suggests_and_lists(records, capsys):
+    write_meta(records, "counting")
+
+    with pytest.raises(SystemExit) as exit_info:
+        main(["--records", str(records), "--metrics", "exact_mtch"])
+
+    assert exit_info.value.code == 2
+    first, second = capsys.readouterr().err.splitlines()
+    assert first == "Unknown metric 'exact_mtch'. Did you mean 'exact_match'?"
+    assert second.startswith("Metrics: ")
+    assert "exact_match" in second
+    assert "output" not in second
+
+
+def test_groupby_typo_suggests(records, capsys):
+    write_meta(records, "counting")
+
+    with pytest.raises(SystemExit):
+        main(["--records", str(records), "--groupby", "categry"])
+
+    err = capsys.readouterr().err
+    assert err.startswith("Unknown column 'categry'. Did you mean 'category'?\n")
+
+
+def test_unknown_name_without_close_match(records, capsys):
+    write_meta(records, "counting")
+
+    with pytest.raises(SystemExit):
+        main(["--records", str(records), "--metrics", "zzz", "exact_mtch"])
+
+    lines = capsys.readouterr().err.splitlines()
+    assert lines[0] == "Unknown metric 'zzz'."
+    assert lines[1].startswith("Unknown metric 'exact_mtch'.")
+    assert lines[2].startswith("Metrics: ")
+
+
+def test_any_numeric_column_is_a_metric(records, capsys):
+    write_meta(records, "counting")
+
+    main(["--records", str(records), "--metrics", "prompt_tokens"])
+
+    assert "prompt_tokens" in capsys.readouterr().out
