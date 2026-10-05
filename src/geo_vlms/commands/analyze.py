@@ -1,4 +1,6 @@
 import argparse
+import json
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -17,9 +19,10 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "-t",
         "--task",
         type=str,
-        required=True,
+        required=False,
+        default=None,
         choices=TASKS,
-        help="Target task.",
+        help="Target task. Default: the task in <records stem>.meta.json.",
     )
     parser.add_argument(
         "-r",
@@ -56,13 +59,39 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def usage_error(message: str):
+    print(message, file=sys.stderr)
+    sys.exit(2)
+
+
+def resolve_task(records_path: Path, task: str | None) -> str:
+    """The run's task from its `.meta.json`, checked against `--task` if given."""
+    meta_path = records_path.with_suffix(".meta.json")
+    if not meta_path.exists():
+        if task is None:
+            usage_error(f"{meta_path} not found; pass --task")
+        print(
+            f"Warning: {meta_path} not found; scoring as {task}. "
+            "A wrong --task gives wrong results.",
+            file=sys.stderr,
+        )
+        return task
+
+    meta_task = json.loads(meta_path.read_text()).get("args", {}).get("task")
+    if meta_task is None:
+        usage_error(f"{meta_path} has no args.task")
+    if task is not None and task != meta_task:
+        usage_error(f"--task {task} does not match {meta_task} in {meta_path}")
+    return meta_task
+
+
 def main(argv: list[str]):
     args = parse_args(argv)
-    task = TASKS[args.task]()
 
     records_path = Path(args.records)
     if not records_path.exists():
         raise FileNotFoundError(f"Records file {records_path} does not exist.")
+    task = TASKS[resolve_task(records_path, args.task)]()
 
     records_df = load_records(records_path)
 

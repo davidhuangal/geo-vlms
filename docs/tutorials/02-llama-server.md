@@ -47,7 +47,6 @@ The GGUF path, quantization, and llama.cpp build are recorded in `.meta.json` un
 ```bash
 for records in results/smolvlm2-counting.jsonl results/smolvlm2-counting-llama.jsonl; do
   uv run geo-vlms analyze \
-    --task counting \
     --records $records \
     --metrics valid exact_match absolute_error within_1
 done

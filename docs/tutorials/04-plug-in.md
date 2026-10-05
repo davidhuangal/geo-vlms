@@ -114,7 +114,6 @@ Wrote records to results/mine-smolvlm2.jsonl
 
 ```bash
 uv run geo-vlms analyze \
-  --task counting \
   --records results/mine-smolvlm2.jsonl \
   --groupby category \
   --metrics exact_match absolute_error
@@ -202,7 +201,6 @@ Wrote records to results/mine-canned.jsonl
 
 ```bash
 uv run geo-vlms analyze \
-  --task counting \
   --records results/mine-canned.jsonl \
   --groupby category \
   --metrics exact_match absolute_error

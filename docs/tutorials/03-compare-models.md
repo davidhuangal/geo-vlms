@@ -42,7 +42,6 @@ On a cluster, run one `geo-vlms` per configuration, such as one Slurm array task
 
 ```bash
 uv run geo-vlms analyze \
-  --task counting \
   --records <records> \
   --metrics valid exact_match absolute_error within_1
 ```
@@ -59,7 +58,6 @@ SmolVLM's error is higher because of one record:
 
 ```bash
 uv run geo-vlms analyze \
-  --task counting \
   --records <SmolVLM records> \
   --groupby split \
   --metrics exact_match absolute_error
@@ -87,7 +85,6 @@ Always group by `expected`:
 
 ```bash
 uv run geo-vlms analyze \
-  --task existence \
   --records <records> \
   --groupby expected \
   --metrics correct

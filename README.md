@@ -30,7 +30,6 @@ Every run records its config, model revision, and software versions, so results 
 
    ```bash
    uv run geo-vlms analyze \
-     --task counting \
      --records results/smolvlm2-counting.jsonl
    ```
 
