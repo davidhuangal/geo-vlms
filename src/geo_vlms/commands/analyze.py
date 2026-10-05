@@ -1,4 +1,5 @@
 import argparse
+import difflib
 import json
 import sys
 from pathlib import Path
@@ -64,6 +65,23 @@ def usage_error(message: str):
     sys.exit(2)
 
 
+def unknown_names(kind: str, names: list[str], valid: list[str]) -> list[str]:
+    """One message per name not in `valid`, then the valid names."""
+    messages = []
+    for name in names:
+        if name in valid:
+            continue
+        message = f"Unknown {kind} '{name}'."
+        close = difflib.get_close_matches(name, valid, n=1)
+        if close:
+            message += f" Did you mean '{close[0]}'?"
+        messages.append(message)
+
+    if messages:
+        messages.append(f"{kind.capitalize()}s: {', '.join(valid)}")
+    return messages
+
+
 def resolve_task(records_path: Path, task: str | None) -> str:
     """The run's task from its `.meta.json`, checked against `--task` if given."""
     meta_path = records_path.with_suffix(".meta.json")
@@ -104,6 +122,12 @@ def main(argv: list[str]):
     metrics_df = score_records(
         records_df=records_df, parse=task.parse_response, score=task.score
     )
+
+    numeric = list(metrics_df.select_dtypes(include=["number", "bool"]).columns)
+    problems = unknown_names("metric", args.metrics or [], numeric)
+    problems += unknown_names("column", args.groupby or [], list(metrics_df.columns))
+    if problems:
+        usage_error("\n".join(problems))
 
     metric_cols = (
         [c for c in metrics_df.columns if c not in records_df.columns]
