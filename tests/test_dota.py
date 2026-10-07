@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -292,6 +293,22 @@ def test_build_dataset_rejects_unknown_category(dota_dir):
 def test_load_prepared_requires_preparation(tmp_path):
     with pytest.raises(FileNotFoundError, match="geo-vlms prepare-dota"):
         load_prepared(tmp_path, "val")
+
+
+def test_load_prepared_reads_custom_split(dota_dir):
+    tiles_dir = dota_dir / "tiles"
+    shutil.copytree(tiles_dir / "val", tiles_dir / "tune")
+
+    tiles, objects = load_prepared(dota_dir, "tune")
+    expected_tiles, expected_objects = load_prepared(dota_dir, "val")
+    pd.testing.assert_frame_equal(tiles, expected_tiles)
+    pd.testing.assert_frame_equal(objects, expected_objects)
+
+
+def test_load_prepared_unknown_custom_split(tmp_path):
+    with pytest.raises(FileNotFoundError, match="does not exist") as error:
+        load_prepared(tmp_path, "tnue")
+    assert "prepare-dota" not in str(error.value)
 
 
 @pytest.mark.skipif(
