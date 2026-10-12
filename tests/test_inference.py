@@ -1,6 +1,6 @@
 import json
 
-from geo_vlms.backends.base import Generation, TokenLogprob
+from geo_vlms.backends.base import Generation, TokenLogprob, TopLogprob
 from geo_vlms.example import Example
 from geo_vlms.inference import run_inference
 
@@ -52,7 +52,14 @@ def test_inference_records_logprobs(tmp_path):
             assert top_logprobs == 2
             return Generation(
                 text="yes",
-                tokens=[TokenLogprob("yes", -0.1, {"yes": -0.1, "no": -2.3})],
+                tokens=[
+                    TokenLogprob(
+                        5,
+                        "yes",
+                        -0.1,
+                        [TopLogprob(5, "yes", -0.1), TopLogprob(6, "no", -2.3)],
+                    )
+                ],
                 prompt_tokens=10,
                 completion_tokens=1,
                 latency_s=0.5,
@@ -70,7 +77,15 @@ def test_inference_records_logprobs(tmp_path):
     (record,) = [json.loads(x) for x in out_path.read_text().splitlines()]
     assert record["output"] == "yes"
     assert record["tokens"] == [
-        {"token": "yes", "logprob": -0.1, "top": {"yes": -0.1, "no": -2.3}}
+        {
+            "id": 5,
+            "token": "yes",
+            "logprob": -0.1,
+            "top": [
+                {"id": 5, "token": "yes", "logprob": -0.1},
+                {"id": 6, "token": "no", "logprob": -2.3},
+            ],
+        }
     ]
     assert record["prompt_tokens"] == 10
     assert record["completion_tokens"] == 1

@@ -98,7 +98,10 @@ uv run geo-vlms \
 Each record gains a `tokens` list:
 
 ```json
-{"token": " No", "logprob": -0.061, "top": {" No": -0.061, " Yes": -2.933, " None": -6.231}}
+{"id": 2838, "token": " No", "logprob": -0.061, "top": [
+  {"id": 2838, "token": " No", "logprob": -0.061},
+  {"id": 9230, "token": " Yes", "logprob": -2.933},
+  {"id": 1943, "token": " None", "logprob": -6.231}]}
 ```
 
 The huggingface backend doesn't support this.

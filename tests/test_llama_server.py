@@ -4,6 +4,7 @@ import httpx
 import pytest
 from openai import APIStatusError
 
+from geo_vlms.backends.base import TokenLogprob, TopLogprob
 from geo_vlms.backends.llama_server import LlamaServerBackend
 
 BASE_URL = "http://server/v1"
@@ -37,14 +38,25 @@ LOGPROBS_RESPONSE = json.loads(json.dumps(CHAT_RESPONSE))
 LOGPROBS_RESPONSE["choices"][0]["logprobs"] = {
     "content": [
         {
+            "id": 7,
             "token": "Yes",
             "logprob": -0.1,
             "bytes": None,
             "top_logprobs": [
-                {"token": "Yes", "logprob": -0.1, "bytes": None},
-                {"token": "No", "logprob": -2.3, "bytes": None},
+                {"id": 7, "token": "Yes", "logprob": -0.1, "bytes": None},
+                {"id": 8, "token": "No", "logprob": -2.3, "bytes": None},
             ],
-        }
+        },
+        {
+            "id": 1,
+            "token": "",
+            "logprob": -0.2,
+            "bytes": [],
+            "top_logprobs": [
+                {"id": 1, "token": "", "logprob": -0.2, "bytes": []},
+                {"id": 2, "token": "", "logprob": -9.0, "bytes": []},
+            ],
+        },
     ]
 }
 
@@ -154,10 +166,25 @@ def test_generate_logprobs():
     assert body["logprobs"] is True
     assert body["top_logprobs"] == 2
 
-    (tok,) = output.tokens
-    assert tok.token == "Yes"
-    assert tok.logprob == -0.1
-    assert tok.top == {"Yes": -0.1, "No": -2.3}
+    tok, stop = output.tokens
+    assert tok == TokenLogprob(
+        7, "Yes", -0.1, [TopLogprob(7, "Yes", -0.1), TopLogprob(8, "No", -2.3)]
+    )
+    assert stop.top == [TopLogprob(1, "", -0.2), TopLogprob(2, "", -9.0)]
+
+
+def test_generate_logprobs_without_ids():
+    response = json.loads(json.dumps(LOGPROBS_RESPONSE))
+    for tok in response["choices"][0]["logprobs"]["content"]:
+        del tok["id"]
+        for alternative in tok["top_logprobs"]:
+            del alternative["id"]
+
+    backend = build_backend([], chat_response=response)
+    output = backend.generate("q", None, max_new_tokens=16, top_logprobs=2)
+
+    assert output.tokens[0].id is None
+    assert output.tokens[0].top[0] == TopLogprob(None, "Yes", -0.1)
 
 
 def test_generate_logprobs_missing_raises():

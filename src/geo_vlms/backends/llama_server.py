@@ -7,7 +7,7 @@ import httpx
 import openai
 from openai import OpenAI, OpenAIError
 
-from .base import Generation, TokenLogprob
+from .base import Generation, TokenLogprob, TopLogprob
 
 
 def _guess_mime_from_bytes(image_bytes: bytes) -> str:
@@ -191,9 +191,13 @@ class LlamaServerBackend:
                 raise RuntimeError(f"Server at {self.base_url} returned no logprobs.")
             tokens = [
                 TokenLogprob(
+                    id=getattr(tok, "id", None),
                     token=tok.token,
                     logprob=tok.logprob,
-                    top={t.token: t.logprob for t in tok.top_logprobs},
+                    top=[
+                        TopLogprob(getattr(t, "id", None), t.token, t.logprob)
+                        for t in tok.top_logprobs
+                    ],
                 )
                 for tok in logprobs.content
             ]

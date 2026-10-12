@@ -101,7 +101,11 @@ def test_parse_invalid_response(task):
 
 
 def first_token(top: dict[str, float]) -> list[dict]:
-    return [{"token": "x", "logprob": 0.0, "top": top}]
+    alternatives = [
+        {"id": i, "token": token, "logprob": logprob}
+        for i, (token, logprob) in enumerate(top.items())
+    ]
+    return [{"id": 0, "token": "x", "logprob": 0.0, "top": alternatives}]
 
 
 def test_score_tokens_renormalizes_yes_no(task):

@@ -129,7 +129,15 @@ def token_records(tmp_path):
                 "metadata": {"category": "ship"},
                 "output": output,
                 "tokens": [
-                    {"token": output, "logprob": 0.0, "top": {"Yes": y, "No": n}}
+                    {
+                        "id": 0,
+                        "token": output,
+                        "logprob": 0.0,
+                        "top": [
+                            {"id": 1, "token": "Yes", "logprob": y},
+                            {"id": 2, "token": "No", "logprob": n},
+                        ],
+                    }
                 ],
             }
         )

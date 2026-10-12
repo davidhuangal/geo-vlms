@@ -35,13 +35,13 @@ class Existence(Task[bool]):
         self, tokens: list[dict[str, Any]], expected: bool
     ) -> dict[str, float]:
         """P(yes) from the first token's alternatives, renormalized over yes + no."""
-        top = tokens[0]["top"] if tokens else {}
+        top = tokens[0]["top"] if tokens else []
 
         mass = dict.fromkeys(self.answer_tokens, 0.0)
-        for token, logprob in top.items():
+        for alternative in top:
             for key, variants in self.answer_tokens.items():
-                if token.strip().lower() in variants:
-                    mass[key] += math.exp(logprob)
+                if alternative["token"].strip().lower() in variants:
+                    mass[key] += math.exp(alternative["logprob"])
 
         total = mass["yes"] + mass["no"]
         if total == 0:
