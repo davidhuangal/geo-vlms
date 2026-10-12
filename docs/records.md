@@ -79,7 +79,7 @@ Shard files are left in place.
 | `model_name` | Label from config. |
 | `prompt_tokens`, `completion_tokens` | From the backend, if reported. |
 | `latency_s` | Wall time of the request. `null` on huggingface. |
-| `tokens` | Only with `top_logprobs`. Per token: `token`, `logprob`, and `top` (alternative → logprob). |
+| `tokens` | Only with `top_logprobs`. Per token: `id`, `token`, `logprob`, and `top`, a list of alternatives with the same fields except `top`. `id` is `null` if the server omits it. |
 
 ## Sidecar fields
 

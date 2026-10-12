@@ -3,10 +3,18 @@ from typing import Protocol
 
 
 @dataclass
-class TokenLogprob:
+class TopLogprob:
+    id: int | None
     token: str
     logprob: float
-    top: dict[str, float]
+
+
+@dataclass
+class TokenLogprob:
+    id: int | None
+    token: str
+    logprob: float
+    top: list[TopLogprob]
 
 
 @dataclass
