@@ -38,16 +38,27 @@ def with_min_cover(
 
 
 def score_records(
-    records_df: pd.DataFrame, parse: Callable, score: Callable
+    records_df: pd.DataFrame,
+    parse: Callable,
+    score: Callable,
+    score_tokens: Callable | None = None,
 ) -> pd.DataFrame:
-    """Perform scoring of records using given parsing and scoring functions."""
+    """Perform scoring of records using given parsing and scoring functions.
+
+    `score_tokens` adds scores for rows that have `tokens`.
+    """
     scores = []
 
     for _, row in records_df.iterrows():
         model_response = row["output"]
         expected_response = row["expected"]
         parsed_response = parse(model_response)
-        scores.append(score(parsed_response, expected_response))
+        row_scores = score(parsed_response, expected_response)
+
+        tokens = row.get("tokens")
+        if score_tokens is not None and isinstance(tokens, list):
+            row_scores |= score_tokens(tokens, expected_response)
+        scores.append(row_scores)
 
     scores_df = pd.DataFrame(scores)
     metrics_df = pd.concat(
@@ -60,13 +71,24 @@ def score_records(
 
 
 def summarize(
-    metrics_df: pd.DataFrame, group_by: list[str] | None, metric_cols: list[str]
+    metrics_df: pd.DataFrame,
+    group_by: list[str] | None,
+    metric_cols: list[str],
+    summarize_group: Callable | None = None,
 ) -> pd.DataFrame:
     """Summarize results from a metrics DataFrame.
 
-    When `group_by` is None, summarizes over the whole DataFrame as a
-    one-row result labeled "mean".
+    `summarize_group(rows, metric_cols)` summarizes one group; the default is
+    column means. When `group_by` is None, summarizes over the whole DataFrame
+    as a one-row result labeled "mean".
     """
+    if summarize_group is None:
+
+        def summarize_group(rows, cols):
+            return rows[cols].mean()
+
     if group_by is None:
-        return metrics_df[metric_cols].mean().to_frame("mean").T
-    return metrics_df.groupby(group_by)[metric_cols].mean()
+        return summarize_group(metrics_df, metric_cols).to_frame("mean").T
+    return metrics_df.groupby(group_by).apply(
+        lambda rows: summarize_group(rows, metric_cols)
+    )

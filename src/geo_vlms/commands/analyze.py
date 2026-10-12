@@ -57,6 +57,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default=None,
         help="Rescore counting only objects with this fraction in view.",
     )
+    parser.add_argument(
+        "--answer-tokens",
+        nargs="+",
+        type=str,
+        required=False,
+        default=None,
+        metavar="CLASS=TOKEN[,TOKEN...]",
+        help="Replace answer tokens for log-prob scoring, e.g. yes=true no=false.",
+    )
     return parser.parse_args(argv)
 
 
@@ -80,6 +89,19 @@ def unknown_names(kind: str, names: list[str], valid: list[str]) -> list[str]:
     if messages:
         messages.append(f"{kind.capitalize()}s: {', '.join(valid)}")
     return messages
+
+
+def parse_answer_tokens(items: list[str] | None) -> dict[str, list[str]]:
+    """`["yes=true,y", "no=false"]` -> `{"yes": ["true", "y"], "no": ["false"]}`."""
+    answer_tokens = {}
+    for item in items or []:
+        key, sep, tokens = item.partition("=")
+        if not sep or not key or not tokens:
+            usage_error(
+                f"Bad --answer-tokens '{item}'. Expected CLASS=TOKEN[,TOKEN...]"
+            )
+        answer_tokens[key] = tokens.split(",")
+    return answer_tokens
 
 
 def resolve_task(records_path: Path, task: str | None) -> str:
@@ -109,7 +131,11 @@ def main(argv: list[str]):
     records_path = Path(args.records)
     if not records_path.exists():
         raise FileNotFoundError(f"Records file {records_path} does not exist.")
-    task = TASKS[resolve_task(records_path, args.task)]()
+    task_cls = TASKS[resolve_task(records_path, args.task)]
+    try:
+        task = task_cls(answer_tokens=parse_answer_tokens(args.answer_tokens))
+    except ValueError as error:
+        usage_error(f"--answer-tokens: {error}")
 
     records_df = load_records(records_path)
 
@@ -120,23 +146,33 @@ def main(argv: list[str]):
         records_df = with_min_cover(records_df, task, args.min_cover)
 
     metrics_df = score_records(
-        records_df=records_df, parse=task.parse_response, score=task.score
+        records_df=records_df,
+        parse=task.parse_response,
+        score=task.score,
+        score_tokens=task.score_tokens,
     )
 
-    numeric = list(metrics_df.select_dtypes(include=["number", "bool"]).columns)
-    problems = unknown_names("metric", args.metrics or [], numeric)
-    problems += unknown_names("column", args.groupby or [], list(metrics_df.columns))
+    problems = unknown_names("column", args.groupby or [], list(metrics_df.columns))
     if problems:
         usage_error("\n".join(problems))
 
-    metric_cols = (
-        [c for c in metrics_df.columns if c not in records_df.columns]
-        if args.metrics is None
-        else args.metrics
-    )
+    if args.metrics is None:
+        metric_cols = [c for c in metrics_df.columns if c not in records_df.columns]
+    else:
+        numeric = metrics_df.select_dtypes(include=["number", "bool"]).columns
+        metric_cols = [c for c in numeric if c not in (args.groupby or [])]
 
     summary_df = summarize(
-        metrics_df=metrics_df, group_by=args.groupby, metric_cols=metric_cols
+        metrics_df=metrics_df,
+        group_by=args.groupby,
+        metric_cols=metric_cols,
+        summarize_group=task.summarize,
     )
+
+    if args.metrics is not None:
+        problems = unknown_names("metric", args.metrics, list(summary_df.columns))
+        if problems:
+            usage_error("\n".join(problems))
+        summary_df = summary_df[args.metrics]
 
     print(summary_df.to_string())
