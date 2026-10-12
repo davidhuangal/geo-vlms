@@ -17,7 +17,8 @@ geo-vlms key=value ...
   └─ run_inference: backend.generate() per Example  →  <out> (JSONL)
 
 geo-vlms analyze --records <out>
-  └─ Task.parse_response + Task.score per record  →  summary table
+  ├─ Task.parse_response + Task.score per record (+ Task.score_tokens with tokens)
+  └─ Task.summarize per group  →  summary table
 ```
 
 Inference and scoring are separate.

@@ -97,5 +97,6 @@ In-package only.
 
 1. Subclass `Task[PredT]` in `tasks/`, set `default_prompt`, and implement `parse_response` and `score`.
 2. `score` returns the same keys on every branch. Use NaN, not a missing key, for undefined metrics.
-3. Register it in `tasks/__init__.py` `TASKS`.
-4. Teach each dataset builder what `expected` is for it.
+3. Optional log-prob scoring: set `default_answer_tokens`, implement `score_tokens`, and override `summarize` for group-level metrics.
+4. Register it in `tasks/__init__.py` `TASKS`.
+5. Teach each dataset builder what `expected` is for it.

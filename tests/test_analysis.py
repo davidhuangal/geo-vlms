@@ -71,3 +71,35 @@ def test_score_records_column_collision():
 
     with pytest.raises(ValueError):
         score_records(records_df, parse, score)
+
+
+def test_summarize_with_group_function():
+    def summarize_group(rows, cols):
+        return pd.Series({"n": len(rows)})
+
+    summary = summarize(
+        metrics_df=_metrics_df(),
+        group_by=["category"],
+        metric_cols=["absolute_error"],
+        summarize_group=summarize_group,
+    )
+
+    assert summary.loc["ship", "n"] == 2
+    assert list(summary.columns) == ["n"]
+
+
+def test_score_records_scores_tokens_when_present():
+    def score_tokens(tokens, expected):
+        return {"n_tokens": float(len(tokens))}
+
+    records_df = pd.DataFrame(
+        [
+            {"output": "1", "expected": 1, "tokens": [{"token": "1"}]},
+            {"output": "1", "expected": 1, "tokens": None},
+        ]
+    )
+
+    metrics_df = score_records(records_df, int, lambda p, e: {}, score_tokens)
+
+    assert metrics_df["n_tokens"].iloc[0] == 1.0
+    assert pd.isna(metrics_df["n_tokens"].iloc[1])

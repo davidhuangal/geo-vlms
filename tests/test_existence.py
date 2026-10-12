@@ -1,5 +1,6 @@
 import math
 
+import pandas as pd
 import pytest
 
 from geo_vlms.tasks import Category, Existence
@@ -97,3 +98,87 @@ def test_existence_scoring(task):
 def test_parse_invalid_response(task):
     assert task.parse_response("maybe") is None
     assert task.parse_response("") is None
+
+
+def first_token(top: dict[str, float]) -> list[dict]:
+    return [{"token": "x", "logprob": 0.0, "top": top}]
+
+
+def test_score_tokens_renormalizes_yes_no(task):
+    scores = task.score_tokens(
+        first_token({"Yes": math.log(0.6), "No": math.log(0.2), "I": math.log(0.2)}),
+        expected=True,
+    )
+
+    assert scores["covered"] == 1.0
+    assert scores["p_yes"] == pytest.approx(0.75)
+
+
+def test_score_tokens_sums_variants(task):
+    scores = task.score_tokens(
+        first_token({"Yes": math.log(0.3), " yes": math.log(0.3), "no": math.log(0.2)}),
+        expected=True,
+    )
+
+    assert scores["p_yes"] == pytest.approx(0.75)
+
+
+def test_score_tokens_one_sided(task):
+    scores = task.score_tokens(first_token({"no": -0.1, "There": -2.0}), expected=True)
+
+    assert scores == {"covered": 1.0, "p_yes": 0.0}
+
+
+def test_score_tokens_uncovered(task):
+    for tokens in (first_token({"There": -0.1}), []):
+        scores = task.score_tokens(tokens, expected=True)
+
+        assert scores["covered"] == 0.0
+        assert math.isnan(scores["p_yes"])
+
+
+def test_answer_tokens_override():
+    task = Existence(answer_tokens={"yes": ["True"], "no": ["False"]})
+
+    scores = task.score_tokens(
+        first_token({"true": math.log(0.3), "false": math.log(0.1), "yes": 0.0}),
+        expected=True,
+    )
+
+    assert scores["p_yes"] == pytest.approx(0.75)
+
+
+def test_unknown_answer_class_raises():
+    with pytest.raises(ValueError, match="Unknown answer classes"):
+        Existence(answer_tokens={"maybe": ["perhaps"]})
+
+
+def test_summarize_auroc_and_disagreement(task):
+    rows = pd.DataFrame(
+        {
+            "expected": [True, False, True, False],
+            "output": ["Yes", "Yes", "No", "No"],
+            "p_yes": [0.9, 0.7, 0.6, 0.2],
+            "correct": [1.0, 0.0, 0.0, 1.0],
+        }
+    )
+
+    summary = task.summarize(rows, ["correct"])
+
+    assert summary["correct"] == 0.5
+    assert summary["auroc"] == pytest.approx(0.75)
+    assert summary["disagreement"] == pytest.approx(0.25)
+
+
+def test_summarize_single_class_auroc_is_nan(task):
+    rows = pd.DataFrame(
+        {"expected": [True, True], "output": ["Yes", "No"], "p_yes": [0.9, 0.4]}
+    )
+
+    assert math.isnan(task.summarize(rows, [])["auroc"])
+
+
+def test_summarize_without_tokens_is_means(task):
+    rows = pd.DataFrame({"expected": [True], "output": ["Yes"], "correct": [1.0]})
+
+    assert task.summarize(rows, ["correct"]).to_dict() == {"correct": 1.0}

@@ -115,3 +115,72 @@ def test_any_numeric_column_is_a_metric(records, capsys):
     main(["--records", str(records), "--metrics", "prompt_tokens"])
 
     assert "prompt_tokens" in capsys.readouterr().out
+
+
+@pytest.fixture
+def token_records(tmp_path):
+    path = tmp_path / "run.jsonl"
+    rows = [(True, "Yes", -0.1, -2.3), (False, "No", -1.0, -0.5)]
+    lines = [
+        json.dumps(
+            {
+                "id": str(i),
+                "expected": expected,
+                "metadata": {"category": "ship"},
+                "output": output,
+                "tokens": [
+                    {"token": output, "logprob": 0.0, "top": {"Yes": y, "No": n}}
+                ],
+            }
+        )
+        for i, (expected, output, y, n) in enumerate(rows)
+    ]
+    path.write_text("\n".join(lines) + "\n")
+    write_meta(path, "existence")
+    return path
+
+
+def test_tokens_turn_on_logprob_metrics(token_records, capsys):
+    main(["--records", str(token_records)])
+
+    out = capsys.readouterr().out
+    for name in ("p_yes", "covered", "auroc", "disagreement"):
+        assert name in out
+
+
+def test_group_metric_can_be_selected(token_records, capsys):
+    main(["--records", str(token_records), "--metrics", "auroc", "-g", "category"])
+
+    out = capsys.readouterr().out
+    assert "auroc" in out and "covered" not in out
+    assert out.splitlines()[-1].split() == ["ship", "1.0"]
+
+
+def test_answer_tokens_override(token_records, capsys):
+    main(
+        [
+            "--records",
+            str(token_records),
+            "--answer-tokens",
+            "yes=true",
+            "-m",
+            "covered",
+        ]
+    )
+
+    assert capsys.readouterr().out.splitlines()[-1].split() == ["mean", "1.0"]
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ("yes", "Bad --answer-tokens 'yes'"),
+        ("maybe=perhaps", "--answer-tokens: Unknown answer classes ['maybe']"),
+    ],
+)
+def test_bad_answer_tokens_exit(token_records, capsys, value, message):
+    with pytest.raises(SystemExit) as exit_info:
+        main(["--records", str(token_records), "--answer-tokens", value])
+
+    assert exit_info.value.code == 2
+    assert capsys.readouterr().err.startswith(message)

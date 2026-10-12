@@ -79,6 +79,36 @@ uv run geo-vlms analyze \
   --groupby expected
 ```
 
+### Log-prob scoring
+
+Records with `tokens` (runs with `top_logprobs`) also get log-prob metrics.
+P(yes) comes from the first token's alternatives.
+Alternatives matching `yes` or `no` after strip and lowercase are summed, then renormalized over yes + no.
+If only one side appears, P(yes) is 1 or 0.
+If neither appears, the row isn't covered.
+Use `top_logprobs=20` so few rows go uncovered.
+
+| Metric | Meaning |
+|---|---|
+| `covered` | 1 if yes or no appears in the first token's alternatives. |
+| `p_yes` | P(yes) over yes + no. NaN when not covered. |
+| `auroc` | Group-level. How well `p_yes` ranks present over absent. NaN with only one class. |
+| `disagreement` | Group-level. Share of covered, valid rows where `p_yes >= 0.5` and the text answer differ. |
+
+Group-level metrics use covered rows only.
+Read them next to `covered`, since uncovered rows aren't random.
+
+Change the answer tokens, for example after a true/false prompt:
+
+```bash
+uv run geo-vlms analyze \
+  --records <records> \
+  --answer-tokens yes=true no=false
+```
+
+Each class takes a comma-separated list, e.g. `yes=true,yes`.
+Classes not passed keep their defaults.
+
 ## Categories
 
 Datasets pass a `Category(name, plural)` to `format_prompt`.

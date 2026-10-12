@@ -104,14 +104,16 @@ uv run geo-vlms analyze \
   --records <records> \
   [--groupby col ...] \
   [--metrics metric ...] \
-  [--min-cover 0.5]
+  [--min-cover 0.5] \
+  [--answer-tokens yes=true no=false]
 ```
 
 The task comes from `<records stem>.meta.json`.
 A `--task` that disagrees with it is an error.
 Without a `.meta.json`, `--task` is required, and a wrong one gives wrong results.
 `--groupby` groups by any record or `metadata` column, e.g. `split`, `category`, `expected`.
-`--metrics` picks metrics.
+`--metrics` picks metrics, including group-level ones like `auroc`.
+`--answer-tokens` replaces the tokens log-prob scoring matches.
 `--min-cover` recomputes `expected` counting only objects with at least that fraction in view.
 It needs `coverage` metadata, which only DOTA records have.
 Metrics are defined in [tasks.md](tasks.md).
