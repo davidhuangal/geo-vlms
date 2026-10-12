@@ -64,15 +64,15 @@ def build_counting_dataset(
     pos_dir: os.PathLike,
     gt_dir: os.PathLike,
     neg_dir: os.PathLike | None = None,
-    num_pos_images: int | None = None,
-    num_neg_images: int | None = None,
+    num_pos: int | None = None,
+    num_neg: int | None = None,
     seed: int = 0,
 ) -> list[Example]:
     task = Counting()
     examples = []
 
     pos_rng = random.Random(f"{seed}-pos")
-    for image_path in _sorted_jpgs(pos_dir, num_pos_images, pos_rng):
+    for image_path in _sorted_jpgs(pos_dir, num_pos, pos_rng):
         for category, count in _category_counts(image_path, gt_dir).items():
             examples.append(
                 Example(
@@ -90,7 +90,7 @@ def build_counting_dataset(
 
     if neg_dir is not None:
         neg_rng = random.Random(f"{seed}-neg")
-        for image_path in _sorted_jpgs(neg_dir, num_neg_images, neg_rng):
+        for image_path in _sorted_jpgs(neg_dir, num_neg, neg_rng):
             for category in CLASS_MAP.values():
                 examples.append(
                     Example(
@@ -113,15 +113,15 @@ def build_existence_dataset(
     pos_dir: os.PathLike,
     gt_dir: os.PathLike,
     neg_dir: os.PathLike | None = None,
-    num_pos_images: int | None = None,
-    num_neg_images: int | None = None,
+    num_pos: int | None = None,
+    num_neg: int | None = None,
     seed: int = 0,
 ) -> list[Example]:
     task = Existence()
     examples = []
 
     pos_rng = random.Random(f"{seed}-pos")
-    for image_path in _sorted_jpgs(pos_dir, num_pos_images, pos_rng):
+    for image_path in _sorted_jpgs(pos_dir, num_pos, pos_rng):
         for category, count in _category_counts(image_path, gt_dir).items():
             examples.append(
                 Example(
@@ -139,7 +139,7 @@ def build_existence_dataset(
 
     if neg_dir is not None:
         neg_rng = random.Random(f"{seed}-neg")
-        for image_path in _sorted_jpgs(neg_dir, num_neg_images, neg_rng):
+        for image_path in _sorted_jpgs(neg_dir, num_neg, neg_rng):
             for category in CLASS_MAP.values():
                 examples.append(
                     Example(
@@ -178,7 +178,7 @@ def build_dataset(
         pos_dir=data_dir / "positive_image_set",
         gt_dir=data_dir / "ground_truth",
         neg_dir=None if no_neg else data_dir / "negative_image_set",
-        num_pos_images=num_pos,
-        num_neg_images=num_neg,
+        num_pos=num_pos,
+        num_neg=num_neg,
         seed=seed,
     )

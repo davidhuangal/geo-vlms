@@ -190,16 +190,16 @@ def test_subset_deterministic(tmp_path):
         pos_dir=dirs.pos,
         gt_dir=dirs.gt,
         neg_dir=dirs.neg,
-        num_pos_images=num_pos - 10,
-        num_neg_images=num_neg - 5,
+        num_pos=num_pos - 10,
+        num_neg=num_neg - 5,
         seed=0,
     )
     b = build_counting_dataset(
         pos_dir=dirs.pos,
         gt_dir=dirs.gt,
         neg_dir=dirs.neg,
-        num_pos_images=num_pos - 10,
-        num_neg_images=num_neg - 5,
+        num_pos=num_pos - 10,
+        num_neg=num_neg - 5,
         seed=0,
     )
 
@@ -215,16 +215,16 @@ def test_pos_and_neg_subsets_independent(tmp_path):
         pos_dir=dirs.pos,
         gt_dir=dirs.gt,
         neg_dir=dirs.neg,
-        num_pos_images=num_pos - 10,
-        num_neg_images=num_neg - 5,
+        num_pos=num_pos - 10,
+        num_neg=num_neg - 5,
         seed=0,
     )
     b = build_counting_dataset(
         pos_dir=dirs.pos,
         gt_dir=dirs.gt,
         neg_dir=dirs.neg,
-        num_pos_images=num_pos - 15,
-        num_neg_images=num_neg - 5,
+        num_pos=num_pos - 15,
+        num_neg=num_neg - 5,
         seed=0,
     )
 
