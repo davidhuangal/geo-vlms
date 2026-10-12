@@ -184,3 +184,9 @@ def test_bad_answer_tokens_exit(token_records, capsys, value, message):
 
     assert exit_info.value.code == 2
     assert capsys.readouterr().err.startswith(message)
+
+
+def test_group_by_expected_with_tokens(token_records, capsys):
+    main(["--records", str(token_records), "--groupby", "expected", "-m", "auroc"])
+
+    assert "auroc" in capsys.readouterr().out

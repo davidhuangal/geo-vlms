@@ -89,6 +89,7 @@ def summarize(
 
     if group_by is None:
         return summarize_group(metrics_df, metric_cols).to_frame("mean").T
-    return metrics_df.groupby(group_by).apply(
+    columns = list(metrics_df.columns)
+    return metrics_df.groupby(group_by)[columns].apply(
         lambda rows: summarize_group(rows, metric_cols)
     )
